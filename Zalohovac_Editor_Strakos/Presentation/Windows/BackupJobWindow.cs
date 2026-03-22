@@ -10,23 +10,31 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
 {
     public class BackupJobWindow : BaseWindow
     {
-        private BackupJob _backupJob;
+        private TextBox _methodTextBox;
+        private TextBox _timingTextBox;
+        private TextBox _retentionTextBox;
+        private TextBox _sourceTextBox;
+        private TextBox _targetsTextBox;
 
-        private TextBox _method;
-        private TextBox _timing;
-        private TextBox _retention;
-        private TextBox _source;
-        private TextBox _targets;
+        private Button _saveButton;
 
-        public BackupJobWindow(string title, Application application, IWindow? returnWindow, List<IComponent> components, int selectedIndex) 
-            : base("Přehled záloh", application, returnWindow, components, selectedIndex)
+        public BackupJobWindow(Application application) 
+            : base("Přehled záloh", application)
         {
-            _method = new TextBox("Metoda: \n", 32);
-            _timing = new TextBox("Časování: \n", 16);
-            _retention = new TextBox("Retence: \n", 64);
-            _source = new TextBox("Zdroj: \n", 64);
-            _targets = new TextBox("Cíle: \n", 64);
+            _methodTextBox = new TextBox("Metoda: \n", 32);
+            _timingTextBox = new TextBox("Časování: \n", 16);
+            _retentionTextBox = new TextBox("Retence: \n", 64);
+            _sourceTextBox = new TextBox("Zdroj: \n", 64);
+            _targetsTextBox = new TextBox("Cíle: \n", 64);
 
+            _saveButton = new Button("Save", true);
+
+            RegisterComponent(_methodTextBox);
+            RegisterComponent(_timingTextBox);
+            RegisterComponent(_retentionTextBox);
+            RegisterComponent(_sourceTextBox);
+            RegisterComponent(_targetsTextBox);
+            RegisterComponent(_saveButton);
         }
     }
 }

@@ -12,7 +12,7 @@ namespace Zalohovac_Editor_Strakos
         private bool _running;
         private IWindow? _activeWindow;
 
-        public Application(bool running, IWindow? activeWindow)
+        public Application()
         {
             _running = false;
             _activeWindow = null;
@@ -29,7 +29,8 @@ namespace Zalohovac_Editor_Strakos
 
             while (_running)
             {
-
+                Render();
+                HandleKey(Console.ReadKey(true));
             }
         }
         public void Stop()

@@ -14,7 +14,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
         private List<IComponent> _components;
         private int _selectedIndex;
 
-        public BaseWindow(string title, Application application, IWindow? returnWindow, List<IComponent> components, int selectedIndex)
+        public BaseWindow(string title, Application application, IWindow? returnWindow = null)
         {
             _title = title;
             _application = application;
