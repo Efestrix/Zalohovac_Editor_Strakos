@@ -26,7 +26,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
         public override void Render(bool selected)
         {
             char pad = selected ? '_' : ' ';
-            string content = Value.PadRight(_size, pad);
+            string content = (Value ?? "").PadRight(_size, pad);
 
             ConsoleHelper.WriteConditionalColor($"{_text}{content}", selected, ConsoleColor.Red);
 

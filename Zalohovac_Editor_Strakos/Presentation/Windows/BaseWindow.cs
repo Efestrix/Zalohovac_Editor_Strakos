@@ -45,7 +45,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             {
                 Close();
             }
-            else if (keyInfo.Key == ConsoleKey.Enter)
+            else if (keyInfo.Key == ConsoleKey.Tab)
             {
                 do
                 {
