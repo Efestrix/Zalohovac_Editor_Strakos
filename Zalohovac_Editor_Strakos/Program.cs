@@ -8,7 +8,7 @@ namespace Zalohovac_Editor_Strakos
         {
             Application app = new Application();
 
-            IWindow window = new BackupJobWindow(app);
+            IWindow window = new MainMenuWindow(app);
 
             app.Run(window);
         }

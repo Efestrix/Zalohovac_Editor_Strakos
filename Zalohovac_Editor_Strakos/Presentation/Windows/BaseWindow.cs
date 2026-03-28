@@ -1,4 +1,5 @@
 ﻿using Zalohovac_Editor_Strakos.Presentation.Components;
+using Zalohovac_Editor_Strakos.Presentation.ViewModels;
 
 namespace Zalohovac_Editor_Strakos.Presentation.Windows
 {
@@ -23,14 +24,16 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             _selectedIndex = 0;
         }
 
-        public void Show()
+        public virtual void Show()
         {
             _application.SwitchWindow(this);
         }
 
-        public void Render()
+        public virtual void Render()
         {
             Console.WriteLine($"{_title}\n");
+
+            Console.SetCursorPosition(0, 2);
 
             for (int i = 0; i < _components.Count; i++)
             {
@@ -39,7 +42,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             }
         }
 
-        public void HandleKey(ConsoleKeyInfo keyInfo)
+        public virtual void HandleKey(ConsoleKeyInfo keyInfo)
         {
             if (keyInfo.Key == ConsoleKey.Escape)
             {
