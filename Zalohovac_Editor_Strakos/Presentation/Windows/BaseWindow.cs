@@ -31,14 +31,13 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
 
         public virtual void Render()
         {
-            Console.WriteLine($"{_title}\n");
+            Console.Clear();
 
-            Console.SetCursorPosition(0, 2);
+            Console.WriteLine($"=== {_title} ===");
 
-            for (int i = 0; i < _components.Count; i++)
+            foreach (IComponent component in _components)
             {
-                bool selected = i == _selectedIndex;
-                _components[i].Render(selected);
+                component.Render(component == _components[_selectedIndex]);
             }
         }
 

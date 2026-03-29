@@ -96,7 +96,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
 
         private void RenderRow(List<string>? values, char sep, char pad, bool selected, ConsoleColor color)
         {
-            for (int i = 0; i < _widths.Capacity; i++)
+            for (int i = 0; i < _widths.Count; i++)
             {
                 string value = values != null ? values[i] : string.Empty;
                 string text = value.PadRight(_widths[i], pad);
@@ -131,6 +131,55 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
                 .GetProperties()
                 .Select(p => p.GetValue(obj)?.ToString() ?? string.Empty)
                 .ToList();
+        }
+        public List<string> GetLines(bool selected)
+        {
+            if (_selectedIndex > Items.Count - 1)
+                _selectedIndex = Items.Count - 1;
+
+            List<List<string>> rows = Items
+                .Select(item => ExtractPropertyValues(typeof(T), item))
+                .ToList();
+
+            CalculateWidths(rows);
+
+            List<string> lines = new List<string>();
+
+            lines.Add(RenderRowToString(null, '+', '-', selected));
+            lines.Add(RenderRowToString(_headers, '+', ' ', selected));
+            lines.Add(RenderRowToString(null, '+', '=', selected));
+
+            for (int i = _offset; i < _offset + _count; i++)
+            {
+                if (i < Items.Count)
+                {
+                    bool selectedRow = i == _selectedIndex;
+                    lines.Add(RenderRowToString(rows[i], '|', ' ', selectedRow));
+                }
+                else
+                {
+                    lines.Add(RenderRowToString(null, '|', ' ', false));
+                }
+            }
+
+            lines.Add(RenderRowToString(null, '+', '-', selected));
+
+            return lines;
+        }
+        private string RenderRowToString(List<string>? values, char sep, char pad, bool selected)
+        {
+            string line = "";
+
+            for (int i = 0; i < _widths.Count; i++)
+            {
+                string value = values != null ? values[i] : string.Empty;
+                string text = value.PadRight(_widths[i], pad);
+                line += $"{sep}{pad}{text}{pad}";
+            }
+
+            line += sep;
+
+            return line;
         }
     }
 }

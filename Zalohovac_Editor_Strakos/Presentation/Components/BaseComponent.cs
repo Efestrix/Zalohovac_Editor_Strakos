@@ -10,6 +10,8 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
     {
         private bool _inline;
         public abstract bool Selectable { get; }
+        public int X { get; set; }
+        public int Y { get; set; }
 
         protected BaseComponent(bool inline = false)
         {

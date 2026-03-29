@@ -10,6 +10,9 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
     {
         bool Selectable { get; }
 
+        public int X { get; set; }
+        public int Y { get; set; }
+
         void Render(bool selected);
         void HandleKey(ConsoleKeyInfo keyInfo);
     }

@@ -26,7 +26,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             _jobsTable = new Table<JobListItem>();
             _detailTable = new Table<JobDetailItem>();
 
-            _addButton = new Button("Add", true);
+            _addButton = new Button("Add");
 
             RegisterComponent(_jobsTable);
             RegisterComponent(_detailTable);
@@ -34,16 +34,19 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
 
             _jobsTable.ItemSelected += OpenSelectedJob;
             _addButton.Clicked += AddJob;
+            _jobsTable.ItemSelected += UpdateDetailTable;
 
             RefreshTable();
         }
 
         private void RefreshTable()
         {
+            Console.WriteLine($"Jobs count: {_jobs.Count}");
+
             _jobsTable.Items = _jobs
                 .Select((job, index) => new JobListItem
                 {
-                    Name = $"Job {index}",
+                    Name = $"Konfigurace_{index}",
                     Method = job.Method.ToString()
                 })
                 .ToList();
@@ -83,9 +86,35 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
         }
         public override void Render()
         {
-            base.Render();
+            Console.Clear();
+            Console.WriteLine("=== Main Menu ===\n");
+
             UpdateDetailTable();
+
+            List<string> left = _jobsTable.GetLines(true);
+            List<string> right = _detailTable.GetLines(false);
+
+            int totalWidth = Console.WindowWidth;
+            int leftWidth = totalWidth / 2 - 2;
+
+            int maxLines = Math.Max(left.Count, right.Count);
+
+            for (int i = 0; i < maxLines; i++)
+            {
+                string l = i < left.Count ? left[i] : "";
+                string r = i < right.Count ? right[i] : "";
+
+                Console.WriteLine(l.PadRight(leftWidth) + " | " + r);
+            }
+
+            Console.WriteLine();
+            _addButton.Render(false);
         }
+        public override void HandleKey(ConsoleKeyInfo keyInfo)
+        {
+            base.HandleKey(keyInfo);
+        }
+
         private void OpenSelectedJob()
         {
             JobListItem? selected = _jobsTable.SelectedItem;
