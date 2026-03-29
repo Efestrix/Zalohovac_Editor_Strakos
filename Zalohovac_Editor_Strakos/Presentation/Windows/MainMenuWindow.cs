@@ -91,20 +91,26 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
 
             UpdateDetailTable();
 
+
+            int totalWidth = Console.WindowWidth;
+
             List<string> left = _jobsTable.GetLines(true);
             List<string> right = _detailTable.GetLines(false);
 
-            int totalWidth = Console.WindowWidth;
-            int leftWidth = totalWidth / 2 - 2;
+            int leftWidth = totalWidth / 2 - 1;
+            int rightWidth = totalWidth / 2 - 1;
+
+            _jobsTable.StretchToWidth(leftWidth);
+            _detailTable.StretchToWidth(rightWidth);
 
             int maxLines = Math.Max(left.Count, right.Count);
 
             for (int i = 0; i < maxLines; i++)
             {
-                string l = i < left.Count ? left[i] : "";
+                string l = i < left.Count ? left[i] : new string(' ', leftWidth);
                 string r = i < right.Count ? right[i] : "";
 
-                Console.WriteLine(l.PadRight(leftWidth) + " | " + r);
+                Console.WriteLine(l + r);
             }
 
             Console.WriteLine();

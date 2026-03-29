@@ -18,8 +18,6 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
             ? Items[Math.Min(_selectedIndex, Items.Count - 1)]
             : null;
 
-        //public T SeletedItem => Items[_selectedIndex];
-
         public List<T> Items { get; set; }
 
         private int _count;
@@ -146,8 +144,6 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
             List<string> lines = new List<string>();
 
             lines.Add(RenderRowToString(null, '+', '-', selected));
-            lines.Add(RenderRowToString(_headers, '+', ' ', selected));
-            lines.Add(RenderRowToString(null, '+', '=', selected));
 
             for (int i = _offset; i < _offset + _count; i++)
             {
@@ -180,6 +176,20 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
             line += sep;
 
             return line;
+        }
+        public void StretchToWidth(int totalWidth)
+        {
+            int columns = _widths.Count;
+
+            int padding = columns * 3 + 1;
+            int available = totalWidth - padding;
+
+            int colWidth = available / columns;
+
+            for (int i = 0; i < _widths.Count; i++)
+            {
+                _widths[i] = colWidth;
+            }
         }
     }
 }
