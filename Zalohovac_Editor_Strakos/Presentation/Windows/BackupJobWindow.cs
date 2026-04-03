@@ -90,37 +90,52 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
 
         private void SaveButtonClicked()
         {
-            _backupJob.Sources = new List<string> { _sourceTextBox.Value };
-            _backupJob.Targets = new List<string> { _targetsTextBox.Value };
+            _backupJob.Sources = _sourceTextBox.Value
+                .Split(',')
+                .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrEmpty(s))
+                .ToList();
+
+            _backupJob.Targets = _targetsTextBox.Value
+                .Split(',')
+                .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrEmpty(s))
+                .ToList();
+
+            if (!IsValidCron(_timingTextBox.Value))
+            {
+                throw new Exception("Neplatný CRON!");
+            }
             _backupJob.Timing = _timingTextBox.Value;
 
-            _backupJob.Method = BackupMethod.Full;
-
-            _backupJob.Retention = new BackupRetention
-            {
-                Count = 1,
-                Size = 0
-            };
-
-            _mainMenu.Save();
-
-            Close();
-            /*if (Enum.TryParse<BackupMethod>(_methodTextBox.Value, true, out BackupMethod method))
+            if (Enum.TryParse(_methodTextBox.Value, true, out BackupMethod method))
             {
                 _backupJob.Method = method;
             }
             else
             {
-                Console.WriteLine("Špatná metoda!");
-                return;
-            }*/
+                _backupJob.Method = BackupMethod.Full;
+            }
 
+            int count = 0;
+            int.TryParse(_retentionTextBox.Value, out count);
 
-            /*if (!int.TryParse(_retentionTextBox.Value, out int count))
+            _backupJob.Retention = new BackupRetention
             {
-                Console.WriteLine("Retention musí být číslo!");
-                return;
-            }*/
+                Count = count,
+                Size = 0
+            };
+
+            _mainMenu.Save();
+            Submit();
+        }
+        public bool IsValidCron(string cron)
+        {
+            return System.Text.RegularExpressions.Regex.IsMatch
+                (
+                    cron,
+                    @"^(\*|\d+)(\s+(\*|\d+)){4}$"
+                );
         }
     }
 }

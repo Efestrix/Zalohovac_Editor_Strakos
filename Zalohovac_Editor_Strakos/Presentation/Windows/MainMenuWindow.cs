@@ -18,6 +18,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
         private Table<JobDetailItem> _detailTable;
 
         private Button _addButton;
+        private Button _delButton;
         public MainMenuWindow(Application application, IWindow? returnWindow = null)
             : base("Main Menu", application)
         {
@@ -27,14 +28,17 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             _detailTable = new Table<JobDetailItem>();
 
             _addButton = new Button("Add");
+            _delButton = new Button("Delete");
 
             RegisterComponent(_jobsTable);
             RegisterComponent(_detailTable);
             RegisterComponent(_addButton);
+            RegisterComponent(_delButton);
 
             _jobsTable.ItemSelected += OpenSelectedJob;
             _addButton.Clicked += AddJob;
             _jobsTable.ItemSelected += UpdateDetailTable;
+            _delButton.Clicked += DeleteSelectedJob;
 
             RefreshTable();
         }
@@ -118,7 +122,16 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
         }
         public override void HandleKey(ConsoleKeyInfo keyInfo)
         {
-            base.HandleKey(keyInfo);
+            if (keyInfo.Key == ConsoleKey.UpArrow)
+                _jobsTable.MoveUp();
+            else if (keyInfo.Key == ConsoleKey.DownArrow)
+                _jobsTable.MoveDown();
+            else if (keyInfo.Key == ConsoleKey.Enter)
+                OpenSelectedJob();
+            else if (keyInfo.Key == ConsoleKey.Delete)
+                DeleteSelectedJob();
+            else if (keyInfo.Key == ConsoleKey.A)
+                AddJob();
         }
 
         private void OpenSelectedJob()
@@ -136,9 +149,17 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
         private void AddJob()
         {
             BackupJob job = new BackupJob();
-            _jobs.Add(job);
 
-            new BackupJobWindow(_application, job, this).Show();
+            BackupJobWindow window = new BackupJobWindow(_application, job, this);
+
+            window.Submitted += () =>
+            {
+                _jobs.Add(job);
+                Save();
+                RefreshTable();
+            };
+
+            window.Show();
         }
         private List<BackupJob> LoadFromJson()
         {
@@ -159,6 +180,20 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
 
             File.WriteAllText("config.json", json);
         }
+        private void DeleteSelectedJob()
+        {
+            JobListItem? selected = _jobsTable.SelectedItem;
 
+            if (selected == null)
+                return;
+
+            int index = _jobsTable.Items.IndexOf(selected);
+
+            _jobs.RemoveAt(index);
+
+            Save();
+            RefreshTable();
+
+        }
     }
 }

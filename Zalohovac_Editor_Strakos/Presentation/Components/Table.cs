@@ -191,5 +191,15 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
                 _widths[i] = colWidth;
             }
         }
+        public void MoveUp()
+        {
+            if (_selectedIndex > 0)
+                _selectedIndex--;
+        }
+        public void MoveDown()
+        {
+            if (_selectedIndex < Items.Count - 1)
+                _selectedIndex++;
+        }
     }
 }
