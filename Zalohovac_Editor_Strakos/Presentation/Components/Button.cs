@@ -24,12 +24,17 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
         public override void Render(bool selected)
         {
             if (selected)
-                Console.ForegroundColor = ConsoleColor.Red;
+            {
+                Console.BackgroundColor = ConsoleColor.DarkBlue;
+                Console.ForegroundColor = ConsoleColor.White;
+            }
 
             Console.Write($"[ {_text} ]");
             Console.ResetColor();
 
             base.Render(selected);
+
+            Console.ResetColor();
         }
 
         public override void HandleKey(ConsoleKeyInfo keyInfo)

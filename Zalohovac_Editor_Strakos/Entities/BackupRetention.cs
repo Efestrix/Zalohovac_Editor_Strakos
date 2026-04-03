@@ -10,8 +10,8 @@ namespace Zalohovac_Editor_Strakos.Entities
     public class BackupRetention
     {
         [JsonPropertyName("count")]
-        public int Count { get; set; }
+        public int Count { get; set; } = 0;
         [JsonPropertyName("size")]
-        public int Size { get; set; }
+        public int Size { get; set; } = 0;
     }
 }

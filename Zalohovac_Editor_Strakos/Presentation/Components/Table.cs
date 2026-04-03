@@ -41,6 +41,12 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
             if (_selectedIndex > Items.Count - 1)
                 _selectedIndex = Items.Count - 1;
 
+            if (selected)
+            {
+                Console.BackgroundColor = ConsoleColor.DarkBlue;
+                Console.ForegroundColor = ConsoleColor.White;
+            }
+
             List<List<string>> rows = Items
                 .Select(item => ExtractPropertyValues(typeof(T), item))
                 .ToList();
@@ -65,6 +71,8 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
             }
 
             RenderRow(null, '+', '-', selected, ConsoleColor.Red);
+
+            Console.ResetColor();
         }
 
         public override void HandleKey(ConsoleKeyInfo keyInfo)
@@ -193,13 +201,15 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
         }
         public void MoveUp()
         {
-            if (_selectedIndex > 0)
-                _selectedIndex--;
+            if (Items.Count == 0) return;
+
+            _selectedIndex = (_selectedIndex - 1 + Items.Count) % Items.Count;
         }
         public void MoveDown()
         {
-            if (_selectedIndex < Items.Count - 1)
-                _selectedIndex++;
+            if (Items.Count == 0) return;
+
+            _selectedIndex = (_selectedIndex + 1) % Items.Count;
         }
     }
 }

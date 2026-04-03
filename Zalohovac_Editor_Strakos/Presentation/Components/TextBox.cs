@@ -25,12 +25,20 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
 
         public override void Render(bool selected)
         {
+            if (selected)
+            {
+                Console.BackgroundColor = ConsoleColor.DarkBlue;
+                Console.ForegroundColor = ConsoleColor.White;
+            }
+
             char pad = selected ? '_' : ' ';
             string content = (Value ?? "").PadRight(_size, pad);
 
             ConsoleHelper.WriteConditionalColor($"{_text}{content}", selected, ConsoleColor.Red);
 
             base.Render(selected);
+
+            Console.ResetColor();
         }
 
         public override void HandleKey(ConsoleKeyInfo keyInfo)

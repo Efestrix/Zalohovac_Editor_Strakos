@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Zalohovac_Editor_Strakos.Entities;
 using Zalohovac_Editor_Strakos.Presentation.Components;
+using Zalohovac_Editor_Strakos.Presentation.Dialogs;
 using Zalohovac_Editor_Strakos.Presentation.ViewModels;
 
 namespace Zalohovac_Editor_Strakos.Presentation.Windows
@@ -19,6 +20,8 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
 
         private Button _addButton;
         private Button _delButton;
+
+        private int _activePanel = 0; // 0 = left, 1 = right
         public MainMenuWindow(Application application, IWindow? returnWindow = null)
             : base("Main Menu", application)
         {
@@ -39,6 +42,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             _addButton.Clicked += AddJob;
             _jobsTable.ItemSelected += UpdateDetailTable;
             _delButton.Clicked += DeleteSelectedJob;
+            Closed += WindowClosed;
 
             RefreshTable();
         }
@@ -50,8 +54,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             _jobsTable.Items = _jobs
                 .Select((job, index) => new JobListItem
                 {
-                    Name = $"Konfigurace_{index}",
-                    Method = job.Method.ToString()
+                    Name = job.Name
                 })
                 .ToList();
 
@@ -77,7 +80,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             {
                 new JobDetailItem { Property = "Method", Value = job.Method.ToString() },
                 new JobDetailItem { Property = "Časování", Value = job.Timing ?? "" },
-                new JobDetailItem { Property = "Retence", Value = job.Retention.Count.ToString() ?? "" },
+                new JobDetailItem { Property = "Retence", Value = job.Retention?.Count.ToString() ?? "0" },
                 new JobDetailItem { Property = "Zdroje", Value = string.Join(", ", job.Sources  ?? new List<string>()) },
                 new JobDetailItem { Property = "Cíle", Value = string.Join(", ", job.Targets ?? new List<string>()) }
             };
@@ -94,7 +97,6 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             Console.WriteLine("=== Main Menu ===\n");
 
             UpdateDetailTable();
-
 
             int totalWidth = Console.WindowWidth;
 
@@ -122,16 +124,49 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
         }
         public override void HandleKey(ConsoleKeyInfo keyInfo)
         {
+            if (keyInfo.Key == ConsoleKey.RightArrow)
+            {
+                _activePanel = 1;
+                return;
+            }
+            else if (keyInfo.Key == ConsoleKey.LeftArrow)
+            {
+                _activePanel = 0;
+                return;
+            }
+
+            if (_activePanel == 0)
+                HandleLeftPanel(keyInfo);
+            else
+                HandleRightPanel(keyInfo);
+        }
+        public void HandleLeftPanel(ConsoleKeyInfo keyInfo)
+        {
             if (keyInfo.Key == ConsoleKey.UpArrow)
                 _jobsTable.MoveUp();
+
             else if (keyInfo.Key == ConsoleKey.DownArrow)
                 _jobsTable.MoveDown();
+
             else if (keyInfo.Key == ConsoleKey.Enter)
-                OpenSelectedJob();
+                _activePanel = 1;
+
             else if (keyInfo.Key == ConsoleKey.Delete)
-                DeleteSelectedJob();
+                ShowDeleteDialog();
+
             else if (keyInfo.Key == ConsoleKey.A)
-                AddJob();
+                ShowAddDialog();
+        }
+        public void HandleRightPanel(ConsoleKeyInfo keyInfo)
+        {
+            if (keyInfo.Key == ConsoleKey.UpArrow)
+                _jobsTable.MoveUp();
+
+            else if (keyInfo.Key == ConsoleKey.DownArrow)
+                _jobsTable.MoveDown();
+
+            else if (keyInfo.Key == ConsoleKey.Enter)
+                _activePanel = 0;
         }
 
         private void OpenSelectedJob()
@@ -194,6 +229,52 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             Save();
             RefreshTable();
 
+        }
+        private void ShowAddDialog()
+        {
+            InputDialog dialog = new InputDialog("Nová konfigurace", _application);
+
+            dialog.Submitted += () =>
+            {
+                BackupJob job = new BackupJob
+                {
+                    Name = string.IsNullOrWhiteSpace(dialog.Result)
+                        ? $"Job {_jobs.Count + 1}"
+                        : dialog.Result
+                };
+
+                _jobs.Add(job);
+                Save();
+                RefreshTable();
+            };
+
+            dialog.Show();
+        }
+        private void ShowDeleteDialog()
+        {
+            ConfirmDialog dialog = new ConfirmDialog("Smazat konfiguraci?", _application);
+
+            dialog.Submitted += () =>
+            {
+                if (!dialog.Confirmed)
+                    return;
+
+                JobListItem? selected = _jobsTable.SelectedItem;
+                if (selected == null)
+                    return;
+
+                int index = _jobsTable.Items.IndexOf(selected);
+
+                _jobs.RemoveAt(index);
+                Save();
+                RefreshTable();
+            };
+
+            dialog.Show();
+        }
+        private void WindowClosed()
+        {
+            _application.Stop();
         }
     }
 }
