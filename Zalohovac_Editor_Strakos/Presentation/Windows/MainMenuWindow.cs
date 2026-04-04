@@ -21,8 +21,6 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
         private Button _addButton;
         private Button _delButton;
 
-        private int _focusIndex = 0;
-
         private ConfirmDialog _confirmDialog = new ConfirmDialog();
         private InputDialog _inputDialog = new InputDialog();
         public MainMenuWindow(Application application, IWindow? returnWindow = null)
@@ -45,14 +43,15 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             {
                 _jobsTable.Active = false;
                 _detailTable.Active = true;
+                _selectedIndex = 1;
             };
 
             Closed += WindowClosed;
 
             RefreshTable();
 
-            //_jobsTable.Active = true;
-            //_detailTable.Active = false;
+            _jobsTable.Active = true;
+            _detailTable.Active = false;
 
             _addButton.Clicked += () => _inputDialog.Visible = true;
             _delButton.Clicked += () => _confirmDialog.Visible = true;
@@ -116,27 +115,59 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             _jobsTable.StretchToWidth(leftWidth);
             _detailTable.StretchToWidth(rightWidth);
 
-            List<string> left = _jobsTable.GetLines(true);
-            List<string> right = _detailTable.GetLines(true);
+            List<string> left = _jobsTable.GetLines(_jobsTable.Active);
+            List<string> right = _detailTable.GetLines(_detailTable.Active);
 
             int maxLines = Math.Max(left.Count, right.Count);
             maxLines = Math.Min(maxLines, totalHeight);
 
             for (int i = 0; i < maxLines; i++)
             {
-                string l = i < left.Count 
+                string l = i < left.Count
                     ? left[i].PadRight(leftWidth)
                     : new string(' ', leftWidth);
 
-                string r = i < right.Count 
-                    ? right[i] 
+                string r = i < right.Count
+                    ? right[i]
                     : "";
 
-                Console.WriteLine(l + r);
+                bool leftRowSelected = _jobsTable.Active && i == _jobsTable.SelectedIndex + 1;
+                bool rightRowSelected = _detailTable.Active && i == _detailTable.SelectedIndex + 1;
+
+                // levá půlka
+                if (leftRowSelected)
+                {
+                    Console.BackgroundColor = ConsoleColor.Gray;
+                    Console.ForegroundColor = ConsoleColor.Black;
+                }
+                else
+                {
+                    Console.BackgroundColor = ConsoleColor.Blue;
+                    Console.ForegroundColor = ConsoleColor.White;
+                }
+
+                Console.Write(l.PadRight(leftWidth));
+                Console.ResetColor();
+
+                // pravá půlka
+                if (rightRowSelected)
+                {
+                    Console.BackgroundColor = ConsoleColor.Gray;
+                    Console.ForegroundColor = ConsoleColor.Black;
+                }
+                else
+                {
+                    Console.BackgroundColor = ConsoleColor.Blue;
+                    Console.ForegroundColor = ConsoleColor.White;
+                }
+
+                Console.WriteLine(r);
+                Console.ResetColor();
             }
 
             Console.WriteLine();
-            _addButton.Render(false);
+            _addButton.Render(_selectedIndex == 2);
+            _delButton.Render(_selectedIndex == 3);
 
             if (_confirmDialog.Visible)
                 _confirmDialog.Render();
@@ -146,15 +177,28 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
         }
         public override void HandleKey(ConsoleKeyInfo keyInfo)
         {
+            if (keyInfo.Key == ConsoleKey.Tab)
+            {
+                base.HandleKey(keyInfo);
+
+                _jobsTable.Active = (_selectedIndex == 0);
+                _detailTable.Active = (_selectedIndex == 1);
+
+                return;
+            }
+
             if (_detailTable.Active && keyInfo.Key == ConsoleKey.Escape)
             {
                 _detailTable.Active = false;
                 _jobsTable.Active = true;
+                _selectedIndex = 0;
                 return;
             }
 
             base.HandleKey(keyInfo);
 
+            _jobsTable.Active = (_selectedIndex == 0);
+            _detailTable.Active = (_selectedIndex == 1);
         }
         private List<BackupJob> LoadFromJson()
         {

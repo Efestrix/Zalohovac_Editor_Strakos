@@ -13,7 +13,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
         protected IWindow? _returnWindow;
 
         private List<IComponent> _components;
-        private int _selectedIndex;
+        protected int _selectedIndex;
 
         public BaseWindow(string title, Application application, IWindow? returnWindow = null)
         {

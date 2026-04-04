@@ -33,6 +33,8 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
             }
         }
 
+        public int SelectedIndex => _selectedIndex;
+
         public List<T> Items { get; set; }
 
         private int _count;
@@ -134,9 +136,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
             }
             ConsoleHelper.WriteLineConditionalColor($"{sep}", selected, color);
 
-            if (!selected)
-                Console.ResetColor();
-            
+            Console.ResetColor();
         }
 
         private void CalculateWidths(List<List<string>> rows)
@@ -185,7 +185,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
             {
                 if (i < Items.Count)
                 {
-                    bool selectedRow = i == _selectedIndex;
+                    bool selectedRow = Active && i == _selectedIndex;
                     lines.Add(RenderRowToString(rows[i], '|', ' ', selectedRow));
                 }
                 else
