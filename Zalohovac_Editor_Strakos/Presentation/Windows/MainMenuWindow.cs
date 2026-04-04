@@ -21,7 +21,10 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
         private Button _addButton;
         private Button _delButton;
 
-        private int _activePanel = 0; // 0 = left, 1 = right
+        private int _focusIndex = 0;
+
+        private ConfirmDialog _confirmDialog = new ConfirmDialog();
+        private InputDialog _inputDialog = new InputDialog();
         public MainMenuWindow(Application application, IWindow? returnWindow = null)
             : base("Main Menu", application)
         {
@@ -38,19 +41,25 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             RegisterComponent(_addButton);
             RegisterComponent(_delButton);
 
-            _jobsTable.ItemSelected += OpenSelectedJob;
-            _addButton.Clicked += AddJob;
-            _jobsTable.ItemSelected += UpdateDetailTable;
-            _delButton.Clicked += DeleteSelectedJob;
+            _jobsTable.ItemSelected += () =>
+            {
+                _jobsTable.Active = false;
+                _detailTable.Active = true;
+            };
+
             Closed += WindowClosed;
 
             RefreshTable();
+
+            //_jobsTable.Active = true;
+            //_detailTable.Active = false;
+
+            _addButton.Clicked += () => _inputDialog.Visible = true;
+            _delButton.Clicked += () => _confirmDialog.Visible = true;
         }
 
         private void RefreshTable()
         {
-            Console.WriteLine($"Jobs count: {_jobs.Count}");
-
             _jobsTable.Items = _jobs
                 .Select((job, index) => new JobListItem
                 {
@@ -99,9 +108,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             UpdateDetailTable();
 
             int totalWidth = Console.WindowWidth;
-
-            List<string> left = _jobsTable.GetLines(true);
-            List<string> right = _detailTable.GetLines(false);
+            int totalHeight = Console.WindowHeight - 5;
 
             int leftWidth = totalWidth / 2 - 1;
             int rightWidth = totalWidth / 2 - 1;
@@ -109,92 +116,45 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             _jobsTable.StretchToWidth(leftWidth);
             _detailTable.StretchToWidth(rightWidth);
 
+            List<string> left = _jobsTable.GetLines(true);
+            List<string> right = _detailTable.GetLines(true);
+
             int maxLines = Math.Max(left.Count, right.Count);
+            maxLines = Math.Min(maxLines, totalHeight);
 
             for (int i = 0; i < maxLines; i++)
             {
-                string l = i < left.Count ? left[i] : new string(' ', leftWidth);
-                string r = i < right.Count ? right[i] : "";
+                string l = i < left.Count 
+                    ? left[i].PadRight(leftWidth)
+                    : new string(' ', leftWidth);
+
+                string r = i < right.Count 
+                    ? right[i] 
+                    : "";
 
                 Console.WriteLine(l + r);
             }
 
             Console.WriteLine();
             _addButton.Render(false);
+
+            if (_confirmDialog.Visible)
+                _confirmDialog.Render();
+
+            if (_inputDialog.Visible)
+                _inputDialog.Render();
         }
         public override void HandleKey(ConsoleKeyInfo keyInfo)
         {
-            if (keyInfo.Key == ConsoleKey.RightArrow)
+            if (_detailTable.Active && keyInfo.Key == ConsoleKey.Escape)
             {
-                _activePanel = 1;
-                return;
-            }
-            else if (keyInfo.Key == ConsoleKey.LeftArrow)
-            {
-                _activePanel = 0;
+                _detailTable.Active = false;
+                _jobsTable.Active = true;
                 return;
             }
 
-            if (_activePanel == 0)
-                HandleLeftPanel(keyInfo);
-            else
-                HandleRightPanel(keyInfo);
-        }
-        public void HandleLeftPanel(ConsoleKeyInfo keyInfo)
-        {
-            if (keyInfo.Key == ConsoleKey.UpArrow)
-                _jobsTable.MoveUp();
+            base.HandleKey(keyInfo);
 
-            else if (keyInfo.Key == ConsoleKey.DownArrow)
-                _jobsTable.MoveDown();
-
-            else if (keyInfo.Key == ConsoleKey.Enter)
-                _activePanel = 1;
-
-            else if (keyInfo.Key == ConsoleKey.Delete)
-                ShowDeleteDialog();
-
-            else if (keyInfo.Key == ConsoleKey.A)
-                ShowAddDialog();
-        }
-        public void HandleRightPanel(ConsoleKeyInfo keyInfo)
-        {
-            if (keyInfo.Key == ConsoleKey.UpArrow)
-                _jobsTable.MoveUp();
-
-            else if (keyInfo.Key == ConsoleKey.DownArrow)
-                _jobsTable.MoveDown();
-
-            else if (keyInfo.Key == ConsoleKey.Enter)
-                _activePanel = 0;
-        }
-
-        private void OpenSelectedJob()
-        {
-            JobListItem? selected = _jobsTable.SelectedItem;
-
-            if (selected == null)
-                return;
-
-            int index = _jobsTable.Items.IndexOf(selected);
-            BackupJob job = _jobs[index];
-
-            new BackupJobWindow(_application, job, this).Show();
-        }
-        private void AddJob()
-        {
-            BackupJob job = new BackupJob();
-
-            BackupJobWindow window = new BackupJobWindow(_application, job, this);
-
-            window.Submitted += () =>
-            {
-                _jobs.Add(job);
-                Save();
-                RefreshTable();
-            };
-
-            window.Show();
         }
         private List<BackupJob> LoadFromJson()
         {
@@ -214,63 +174,6 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             });
 
             File.WriteAllText("config.json", json);
-        }
-        private void DeleteSelectedJob()
-        {
-            JobListItem? selected = _jobsTable.SelectedItem;
-
-            if (selected == null)
-                return;
-
-            int index = _jobsTable.Items.IndexOf(selected);
-
-            _jobs.RemoveAt(index);
-
-            Save();
-            RefreshTable();
-
-        }
-        private void ShowAddDialog()
-        {
-            InputDialog dialog = new InputDialog("Nová konfigurace", _application);
-
-            dialog.Submitted += () =>
-            {
-                BackupJob job = new BackupJob
-                {
-                    Name = string.IsNullOrWhiteSpace(dialog.Result)
-                        ? $"Job {_jobs.Count + 1}"
-                        : dialog.Result
-                };
-
-                _jobs.Add(job);
-                Save();
-                RefreshTable();
-            };
-
-            dialog.Show();
-        }
-        private void ShowDeleteDialog()
-        {
-            ConfirmDialog dialog = new ConfirmDialog("Smazat konfiguraci?", _application);
-
-            dialog.Submitted += () =>
-            {
-                if (!dialog.Confirmed)
-                    return;
-
-                JobListItem? selected = _jobsTable.SelectedItem;
-                if (selected == null)
-                    return;
-
-                int index = _jobsTable.Items.IndexOf(selected);
-
-                _jobs.RemoveAt(index);
-                Save();
-                RefreshTable();
-            };
-
-            dialog.Show();
         }
         private void WindowClosed()
         {

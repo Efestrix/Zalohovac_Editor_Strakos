@@ -14,9 +14,24 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
 
         public override bool Selectable => true;
 
-        public T? SelectedItem => Items.Count > 0
-            ? Items[Math.Min(_selectedIndex, Items.Count - 1)]
-            : null;
+        public bool Active { get; set; } = false;
+
+        public T? SelectedItem
+        {
+            get
+            {
+                if (Items == null || Items.Count == 0)
+                    return default;
+
+                if (_selectedIndex < 0)
+                    _selectedIndex = 0;
+
+                if (_selectedIndex >= Items.Count)
+                    _selectedIndex = Items.Count - 1;
+
+                return Items[_selectedIndex];
+            }
+        }
 
         public List<T> Items { get; set; }
 
@@ -41,15 +56,16 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
             if (_selectedIndex > Items.Count - 1)
                 _selectedIndex = Items.Count - 1;
 
-            if (selected)
-            {
-                Console.BackgroundColor = ConsoleColor.DarkBlue;
-                Console.ForegroundColor = ConsoleColor.White;
-            }
+            int width = Console.WindowWidth;
+            int height = Console.WindowHeight;
+            int leftWidth = width / 2;
+
+            Console.BackgroundColor = ConsoleColor.Blue;
+            Console.ForegroundColor = ConsoleColor.White;
 
             List<List<string>> rows = Items
-                .Select(item => ExtractPropertyValues(typeof(T), item))
-                .ToList();
+                    .Select(item => ExtractPropertyValues(typeof(T), item))
+                    .ToList();
 
             CalculateWidths(rows);
 
@@ -61,7 +77,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
             {
                 if (i < Items.Count)
                 {
-                    bool selectedRow = i == _selectedIndex;
+                    bool selectedRow = (Active && i == _selectedIndex);
                     RenderRow(rows[i], '|', ' ', selectedRow, ConsoleColor.Green);
                 }
                 else
@@ -79,6 +95,8 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
         {
             if (_selectedIndex > Items.Count - 1)
                 _selectedIndex = Items.Count - 1;
+
+            if (!Active) return;
 
             if (keyInfo.Key == ConsoleKey.UpArrow && _selectedIndex > 0)
             {
@@ -102,6 +120,12 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
 
         private void RenderRow(List<string>? values, char sep, char pad, bool selected, ConsoleColor color)
         {
+            if (selected)
+            {
+                Console.BackgroundColor = ConsoleColor.Gray;
+                Console.ForegroundColor = ConsoleColor.Black;
+            }
+
             for (int i = 0; i < _widths.Count; i++)
             {
                 string value = values != null ? values[i] : string.Empty;
@@ -109,6 +133,10 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
                 ConsoleHelper.WriteConditionalColor($"{sep}{pad}{text}{pad}", selected, color);
             }
             ConsoleHelper.WriteLineConditionalColor($"{sep}", selected, color);
+
+            if (!selected)
+                Console.ResetColor();
+            
         }
 
         private void CalculateWidths(List<List<string>> rows)

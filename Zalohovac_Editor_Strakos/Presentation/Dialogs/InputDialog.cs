@@ -9,67 +9,105 @@ using Zalohovac_Editor_Strakos.Presentation.Windows;
 
 namespace Zalohovac_Editor_Strakos.Presentation.Dialogs
 {
-    public class InputDialog : BaseWindow
+    public class InputDialog
     {
-        private TextBox _inputTextBox;
-        private Button _okButton;
-        private Button _cancelButton;
+        public bool Visible { get; set; }
+        public string Result { get; private set; } = "";
 
-        public string Result { get; private set; }
-        public InputDialog(string title, Application application) 
-            : base(title, application)
+        private string _text = "";
+        private int _selected = 0; // 0 = input, 1 = OK, 2 = Cancel
+
+        public void Render()
         {
-            _inputTextBox = new TextBox("", 30);
-            _okButton = new Button("OK");
-            _cancelButton = new Button("Cancel");
+            int w = 50;
+            int h = 9;
 
-            RegisterComponent(_inputTextBox);
-            RegisterComponent(_okButton);
-            RegisterComponent(_cancelButton);
+            int left = (Console.WindowWidth - w) / 2;
+            int top = (Console.WindowHeight - h) / 2;
 
-            _okButton.Clicked += () =>
-            {
-                Result = _inputTextBox.Value;
-                Submit();
-            };
-
-            _cancelButton.Clicked += () =>
-            {
-                Close();
-            };
-        }
-        public override void Render()
-        {
-            int width = 40;
-            int height = 6;
-
-            int left = (Console.WindowWidth - width) / 2;
-            int top = (Console.WindowHeight - height) / 2;
-
-            DrawBox(left, top, width, height);
+            DrawBox(left, top, w, h);
 
             Console.SetCursorPosition(left + 2, top + 1);
-            Console.WriteLine(_title);
+            Console.Write("Zadej název konfigurace:");
 
-            Console.SetCursorPosition(left + 2, top + 2);
-            _inputTextBox.Render(true);
+            // INPUT
+            Console.SetCursorPosition(left + 2, top + 3);
 
-            Console.SetCursorPosition(left + 2, top + 4);
-            _okButton.Render(false);
+            if (_selected == 0)
+                Console.BackgroundColor = ConsoleColor.DarkGray;
 
-            Console.SetCursorPosition(left + 10, top + 4);
-            _cancelButton.Render(false);
+            Console.Write(_text.PadRight(w - 4));
+            Console.ResetColor();
+
+            Console.SetCursorPosition(left + 10, top + 6);
+            DrawButton("OK", _selected == 1);
+
+            Console.SetCursorPosition(left + 25, top + 6);
+            DrawButton("Cancel", _selected == 2);
         }
-        private void DrawBox(int x, int y, int width, int height)
+
+        public void HandleKey(ConsoleKeyInfo key)
         {
-            for (int i = 0; i < height; i++)
+            if (_selected == 0)
+            {
+                if (key.Key == ConsoleKey.Backspace && _text.Length > 0)
+                    _text = _text.Substring(0, _text.Length - 1);
+
+                else if (key.Key == ConsoleKey.Enter)
+                    _selected = 1;
+
+                else if (!char.IsControl(key.KeyChar))
+                    _text += key.KeyChar;
+            }
+            else
+            {
+                if (key.Key == ConsoleKey.LeftArrow)
+                    _selected--;
+
+                else if (key.Key == ConsoleKey.RightArrow)
+                    _selected++;
+
+                if (_selected < 0) _selected = 2;
+                if (_selected > 2) _selected = 0;
+
+                else if (key.Key == ConsoleKey.Enter)
+                {
+                    if (_selected == 1)
+                        Result = string.IsNullOrWhiteSpace(_text) ? "" : _text;
+
+                    Visible = false;
+                }
+
+                else if (key.Key == ConsoleKey.Escape)
+                {
+                    Result = "";
+                    Visible = false;
+                }
+            }
+        }
+
+        private void DrawButton(string text, bool selected)
+        {
+            if (selected)
+            {
+                Console.BackgroundColor = ConsoleColor.DarkBlue;
+                Console.ForegroundColor = ConsoleColor.White;
+            }
+
+            Console.Write($"[ {text} ]");
+            Console.ResetColor();
+        }
+
+        private void DrawBox(int x, int y, int w, int h)
+        {
+            for (int i = 0; i < h; i++)
             {
                 Console.SetCursorPosition(x, y + i);
 
-                if (i == 0 || i == height - 1)
-                    Console.WriteLine("+" + new string('-', width - 2) + "+");
+                if (i == 0 || i == h - 1)
+                    Console.Write("+" + new string('-', w - 2) + "+");
                 else
-                    Console.WriteLine("|" + new string(' ', width - 2) + "|");
+                    Console.Write("|" + new string(' ', w - 2) + "|");
             }
         }
     }

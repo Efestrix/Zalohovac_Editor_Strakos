@@ -8,32 +8,77 @@ using Zalohovac_Editor_Strakos.Presentation.Windows;
 
 namespace Zalohovac_Editor_Strakos.Presentation.Dialogs
 {
-    public class ConfirmDialog : BaseWindow
+    public class ConfirmDialog
     {
-        private Button _okButton;
-        private Button _cancelButton;
-        public bool Confirmed { get; private set; }
+        public bool Visible { get; set; }
+        public bool Result { get; private set; }
 
-        public ConfirmDialog(string title, Application application) 
-            : base(title, application)
+        private int _selected = 0; // 0 = OK, 1 = Cancel
+
+        public void Render()
         {
-            _okButton = new Button("OK");
-            _cancelButton = new Button("Cancel");
+            int w = 40;
+            int h = 7;
 
-            RegisterComponent(_okButton);
-            RegisterComponent(_cancelButton);
+            int left = (Console.WindowWidth - w) / 2;
+            int top = (Console.WindowHeight - h) / 2;
 
-            _okButton.Clicked += () =>
+            DrawBox(left, top, w, h);
+
+            Console.SetCursorPosition(left + 2, top + 2);
+            Console.Write("Opravdu smazat?");
+
+            Console.SetCursorPosition(left + 8, top + 4);
+            DrawButton("OK", _selected == 0);
+
+            Console.SetCursorPosition(left + 20, top + 4);
+            DrawButton("Cancel", _selected == 1);
+        }
+
+        public void HandleKey(ConsoleKeyInfo key)
+        {
+            if (key.Key == ConsoleKey.LeftArrow)
+                _selected = 0;
+
+            else if (key.Key == ConsoleKey.RightArrow)
+                _selected = 1;
+
+            else if (key.Key == ConsoleKey.Enter)
             {
-                Confirmed = true;
-                Submit();
-            };
+                Result = _selected == 0;
+                Visible = false;
+            }
 
-            _cancelButton.Clicked += () =>
+            else if (key.Key == ConsoleKey.Escape)
             {
-                Confirmed = false;
-                Close();
-            };
+                Result = false;
+                Visible = false;
+            }
+        }
+
+        private void DrawButton(string text, bool selected)
+        {
+            if (selected)
+            {
+                Console.BackgroundColor = ConsoleColor.DarkBlue;
+                Console.ForegroundColor = ConsoleColor.White;
+            }
+
+            Console.Write($"[ {text} ]");
+            Console.ResetColor();
+        }
+
+        private void DrawBox(int x, int y, int w, int h)
+        {
+            for (int i = 0; i < h; i++)
+            {
+                Console.SetCursorPosition(x, y + i);
+
+                if (i == 0 || i == h - 1)
+                    Console.Write("+" + new string('-', w - 2) + "+");
+                else
+                    Console.Write("|" + new string(' ', w - 2) + "|");
+            }
         }
     }
 }
