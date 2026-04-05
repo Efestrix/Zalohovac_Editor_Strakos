@@ -6,7 +6,6 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Zalohovac_Editor_Strakos.Entities;
 using Zalohovac_Editor_Strakos.Presentation.Components;
-using Zalohovac_Editor_Strakos.Presentation.ViewModels;
 
 namespace Zalohovac_Editor_Strakos.Presentation.Windows
 {
