@@ -15,7 +15,6 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
         private Table<JobDetailItem> _detailTable;
 
         private int _editingDetailIndex = -1;
-        private BackupJob? _draftJob = null;
 
         private ConfirmDialog _confirmDialog = new ConfirmDialog();
         private InputDialog _inputDialog = new InputDialog();
@@ -448,32 +447,48 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                 case 0:
                     _inputDialog.Title = "Zadej metodu (Full/Differential/Incremental)";
                     _inputDialog.SetInitialValue(job.Method.ToString());
-                    break;
+                    _inputDialog.Visible = true;
+                    return;
 
                 case 1:
                     _inputDialog.Title = "Zadej časování (CRON)";
                     _inputDialog.SetInitialValue(job.Timing ?? "");
-                    break;
+                    _inputDialog.Visible = true;
+                    return;
 
                 case 2:
                     _inputDialog.Title = "Zadej retention count:";
                     _inputDialog.SetInitialValue(job.Retention?.Count.ToString() ?? "0");
-                    break;
+                    _inputDialog.Visible = true;
+                    return;
 
                 case 3:
                     _inputDialog.Title = "Zadej retention size:";
                     _inputDialog.SetInitialValue(job.Retention?.Size.ToString() ?? "0");
-                    break;
+                    _inputDialog.Visible = true;
+                    return;
 
                 case 4:
-                    _inputDialog.Title = "Zadej zdroje oddělené čárkou";
-                    _inputDialog.SetInitialValue(string.Join(", ", job.Sources ?? new List<string>()));
-                    break;
+                    FileSystemWindow windowSource = new FileSystemWindow(_application, job.Sources, this);
+                    windowSource.Submitted += () =>
+                    {
+                        job.Sources = new List<string>(windowSource.Result);
+                        Save();
+                        RefreshTable();
+                    };
+                    windowSource.Show();
+                    return;
 
                 case 5:
-                    _inputDialog.Title = "Zadej cíle oddělené čárkou";
-                    _inputDialog.SetInitialValue(string.Join(", ", job.Targets ?? new List<string>()));
-                    break;
+                    FileSystemWindow windowTarget = new FileSystemWindow(_application, job.Targets, this);
+                    windowTarget.Submitted += () =>
+                    {
+                        job.Targets = new List<string>(windowTarget.Result);
+                        Save();
+                        RefreshTable();
+                    };
+                    windowTarget.Show();
+                    return;
             }
 
             _inputDialog.Visible = true;
