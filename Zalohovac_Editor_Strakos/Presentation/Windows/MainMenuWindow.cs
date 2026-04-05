@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
+﻿using System.Text.Json;
 using Zalohovac_Editor_Strakos.Entities;
 using Zalohovac_Editor_Strakos.Presentation.Components;
 using Zalohovac_Editor_Strakos.Presentation.Dialogs;
@@ -18,8 +13,8 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
         private Table<JobListItem> _jobsTable;
         private Table<JobDetailItem> _detailTable;
 
-        private Button _addButton;
-        private Button _delButton;
+        private int _editingDetailIndex = -1;
+        private BackupJob? _draftJob = null;
 
         private ConfirmDialog _confirmDialog = new ConfirmDialog();
         private InputDialog _inputDialog = new InputDialog();
@@ -31,13 +26,8 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             _jobsTable = new Table<JobListItem>();
             _detailTable = new Table<JobDetailItem>();
 
-            _addButton = new Button("Add");
-            _delButton = new Button("Delete");
-
             RegisterComponent(_jobsTable);
             RegisterComponent(_detailTable);
-            RegisterComponent(_addButton);
-            RegisterComponent(_delButton);
 
             _jobsTable.ItemSelected += () =>
             {
@@ -52,9 +42,6 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
 
             _jobsTable.Active = true;
             _detailTable.Active = false;
-
-            _addButton.Clicked += () => _inputDialog.Visible = true;
-            _delButton.Clicked += () => _confirmDialog.Visible = true;
         }
 
         private void RefreshTable()
@@ -106,24 +93,28 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             int width = Console.WindowWidth;
             int height = Console.WindowHeight;
 
-            int headerHeight = 3;
+            int headerHeight = 2;
+            int margin = 1;
+
             int leftX = 2;
             int panelTop = headerHeight + 1;
             int panelHeight = height - headerHeight - 3;
 
             int dividerX = width / 2;
-            int leftPanelWidth = dividerX - leftX - 1;
-            int rightX = dividerX + 1;
-            int rightPanelWidth = width - rightX - 2;
+            int leftPanelWidth = dividerX - leftX;
+            int rightX = dividerX;
+            int rightPanelWidth = width - rightX - 1;
 
             Console.SetCursorPosition(0, 0);
 
             DrawBackground(width, height);
             DrawHeader(width);
             DrawPanels(leftX, panelTop, leftPanelWidth, rightX, rightPanelWidth, panelHeight);
-            DrawJobs(leftX + 2, panelTop + 2, leftPanelWidth - 4);
-            DrawDetails(rightX + 2, panelTop + 2, rightPanelWidth - 4);
+            DrawJobs(leftX + 2, panelTop + 2, leftPanelWidth - 4, panelHeight - 6);
+            DrawDetails(rightX + 2, panelTop + 2, rightPanelWidth - 4, panelHeight - 6);
             DrawButtons(rightX + 4, panelTop + panelHeight - 3);
+
+            DrawHotKeys(leftX + 2, panelTop + panelHeight - 2);
 
             if (_confirmDialog.Visible)
                 _confirmDialog.Render();
@@ -136,12 +127,57 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             if (_confirmDialog.Visible)
             {
                 _confirmDialog.HandleKey(keyInfo);
+
+                if (!_confirmDialog.Visible && _confirmDialog.Result)
+                    DeleteSelectedJob();
+
                 return;
             }
 
             if (_inputDialog.Visible)
             {
                 _inputDialog.HandleKey(keyInfo);
+                
+                if (!_inputDialog.Visible && !string.IsNullOrWhiteSpace(_inputDialog.Result))
+                {
+                    if (_editingDetailIndex == -1)
+                    {
+                        BackupJob job = new BackupJob
+                        {
+                            Name = _inputDialog.Result,
+                        };
+
+                        _jobs.Add(job);
+                    }
+                    else
+                    {
+                        ApplyDetailEdit(_inputDialog.Result);
+                        _editingDetailIndex = -1;
+                    }
+
+                        Save();
+                    RefreshTable();
+                    _inputDialog.Reset();
+                }
+                else if (!_inputDialog.Visible)
+                {
+                    _editingDetailIndex = -1;
+                    _inputDialog.Reset();
+                }
+
+                return;
+            }
+
+            if (_jobsTable.Active && (keyInfo.Key == ConsoleKey.A ||keyInfo.KeyChar == 'a'))
+            {
+                _inputDialog.Reset();
+                _inputDialog.Visible = true;
+                return;
+            }
+
+            if (_jobsTable.Active && (keyInfo.Key == ConsoleKey.Delete))
+            {
+                _confirmDialog.Visible = true;
                 return;
             }
 
@@ -169,6 +205,13 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             }
             else if (_detailTable.Active)
             {
+                if (keyInfo.Key == ConsoleKey.Enter)
+                {
+                    _editingDetailIndex = _detailTable.SelectedIndex;
+                    OpenDetailEditor();
+                    return;
+                }
+
                 _detailTable.HandleKey(keyInfo);
             }
             else
@@ -256,11 +299,22 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             Console.ResetColor();
         }
 
-        private void DrawJobs(int x, int y, int width)
+        private void DrawJobs(int x, int y, int width, int height)
         {
-            for (int i = 0; i < _jobs.Count; i++)
+            int maxVisible = Math.Max(1, height / 2);
+
+            for (int i = 0; i < maxVisible; i++)
             {
                 Console.SetCursorPosition(x, y + i * 2);
+
+                if (i >= _jobs.Count)
+                {
+                    Console.BackgroundColor = ConsoleColor.Blue;
+                    Console.ForegroundColor = ConsoleColor.White;
+                    Console.Write(new string(' ', width));
+                    Console.ResetColor();
+                    continue;
+                }
 
                 bool selected = _jobsTable.Active && i == _jobsTable.SelectedIndex;
 
@@ -279,12 +333,12 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                 if (text.Length > width)
                     text = text.Substring(0, width - 3) + "...";
 
-                Console.Write(text.PadRight(width));
+                Console.Write((" " + text).PadRight(width));
                 Console.ResetColor();
             }
         }
 
-        private void DrawDetails(int x, int y, int width)
+        private void DrawDetails(int x, int y, int width, int height)
         {
             if (_jobs.Count == 0 || _jobsTable.SelectedItem == null)
                 return;
@@ -314,6 +368,8 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                 Console.BackgroundColor = ConsoleColor.Blue;
                 Console.ForegroundColor = ConsoleColor.White;
                 Console.Write(rows[i].Label.PadRight(width));
+                Console.ResetColor();
+
                 row++;
 
                 Console.SetCursorPosition(x + 2, y + row);
@@ -342,8 +398,11 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
 
         private void DrawButtons(int x, int y)
         {
-            DrawButton(x, y, "OK", _selectedIndex == 2);
-            DrawButton(x + 20, y, "Storno", _selectedIndex == 3);
+            bool okSelected = _selectedIndex == 2;
+            bool cancelSelected = _selectedIndex == 3;
+
+            DrawButton(x, y, "OK", okSelected);
+            DrawButton(x + 20, y, "Storno", cancelSelected);
         }
 
         private void DrawButton(int x, int y, string text, bool selected)
@@ -363,6 +422,119 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
 
             Console.Write($"[ {text} ]");
             Console.ResetColor();
+        }
+        private void DrawHotKeys(int x, int y)
+        {
+            Console.SetCursorPosition(x, y);
+            Console.BackgroundColor = ConsoleColor.Blue;
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.ResetColor();
+        }
+        private void DeleteSelectedJob()
+        {
+            JobListItem? selected = _jobsTable.SelectedItem;
+            if (selected == null)
+                return;
+
+            int index = _jobsTable.Items.IndexOf(selected);
+            if (index < 0 || index >= _jobs.Count)
+                return;
+
+            _jobs.RemoveAt(index);
+            Save();
+            RefreshTable();
+
+            if (_jobs.Count == 0)
+            {
+                _jobsTable.Active = true;
+                _detailTable.Active = false;
+                _selectedIndex = 0;
+            }
+        }
+        private void OpenDetailEditor()
+        {
+            if (_jobsTable.SelectedItem == null)
+                return;
+
+            int jobIndex = _jobsTable.Items.IndexOf(_jobsTable.SelectedItem);
+            if (jobIndex < 0 || jobIndex >= _jobs.Count)
+                return;
+
+            BackupJob job = _jobs[jobIndex];
+
+            _inputDialog.Reset();
+
+            switch (_editingDetailIndex)
+            {
+                case 0:
+                    _inputDialog.SetInitialValue(job.Method.ToString());
+                    break;
+
+                case 1:
+                    _inputDialog.SetInitialValue(job.Timing ?? "");
+                    break;
+
+                case 2:
+                    _inputDialog.SetInitialValue(job.Retention?.Count.ToString() ?? "0");
+                    break;
+
+                case 3:
+                    _inputDialog.SetInitialValue(string.Join(", ", job.Sources ?? new List<string>()));
+                    break;
+
+                case 4:
+                    _inputDialog.SetInitialValue(string.Join(", ", job.Targets ?? new List<string>()));
+                    break;
+            }
+
+            _inputDialog.Visible = true;
+        }
+        private void ApplyDetailEdit(string value)
+        {
+            if (_jobsTable.SelectedItem == null)
+                return;
+
+            int jobIndex = _jobsTable.Items.IndexOf(_jobsTable.SelectedItem);
+            if (jobIndex < 0 || jobIndex >= _jobs.Count)
+                return;
+
+            BackupJob job = _jobs[jobIndex];
+
+            switch (_editingDetailIndex)
+            {
+                case 0:
+                    if (Enum.TryParse<BackupMethod>(value, true, out BackupMethod method))
+                        job.Method = method;
+                    break;
+
+                case 1:
+                    job.Timing = value;
+                    break;
+
+                case 2:
+                    if (int.TryParse(value, out int count))
+                    {
+                        job.Retention ??= new BackupRetention();
+                        job.Retention.Count = count;
+                    }
+                    break;
+
+                case 3:
+                    job.Sources = value
+                        .Split(',')
+                        .Select(s => s.Trim())
+                        .Where(s => !string.IsNullOrWhiteSpace(s))
+                        .ToList();
+                    break;
+
+                case 4:
+                    job.Targets = value
+                        .Split(',')
+                        .Select(s => s.Trim())
+                        .Where(s => !string.IsNullOrWhiteSpace(s))
+                        .ToList();
+                    break;
+            }
         }
     }
 }

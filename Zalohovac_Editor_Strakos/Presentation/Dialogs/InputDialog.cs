@@ -110,5 +110,17 @@ namespace Zalohovac_Editor_Strakos.Presentation.Dialogs
                     Console.Write("|" + new string(' ', w - 2) + "|");
             }
         }
+        public void Reset()
+        {
+            _text = "";
+            Result = "";
+            _selected = 0;
+        }
+        public void SetInitialValue(string value)
+        {
+            _text = value ?? "";
+            Result = "";
+            _selected = 0;
+        }
     }
 }

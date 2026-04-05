@@ -80,5 +80,11 @@ namespace Zalohovac_Editor_Strakos.Presentation.Dialogs
                     Console.Write("|" + new string(' ', w - 2) + "|");
             }
         }
+        public void Reset()
+        {
+            Result = false;
+            Visible = false;
+            _selected = 0;
+        }
     }
 }
