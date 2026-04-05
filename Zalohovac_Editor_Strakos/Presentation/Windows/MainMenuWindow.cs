@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Linq.Expressions;
+using System.Text.Json;
 using Zalohovac_Editor_Strakos.Entities;
 using Zalohovac_Editor_Strakos.Presentation.Components;
 using Zalohovac_Editor_Strakos.Presentation.Dialogs;
@@ -75,7 +76,8 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             {
                 new JobDetailItem { Property = "Method", Value = job.Method.ToString() },
                 new JobDetailItem { Property = "Časování", Value = job.Timing ?? "" },
-                new JobDetailItem { Property = "Retence", Value = job.Retention?.Count.ToString() ?? "0" },
+                new JobDetailItem { Property = "Retence Count", Value = (job.Retention?.Count ?? 0).ToString() },
+                new JobDetailItem { Property = "Retence Size", Value = (job.Retention?.Size ?? 0).ToString() },
                 new JobDetailItem { Property = "Zdroje", Value = string.Join(", ", job.Sources  ?? new List<string>()) },
                 new JobDetailItem { Property = "Cíle", Value = string.Join(", ", job.Targets ?? new List<string>()) }
             };
@@ -112,7 +114,6 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             DrawPanels(leftX, panelTop, leftPanelWidth, rightX, rightPanelWidth, panelHeight);
             DrawJobs(leftX + 2, panelTop + 2, leftPanelWidth - 4, panelHeight - 6);
             DrawDetails(rightX + 2, panelTop + 2, rightPanelWidth - 4, panelHeight - 6);
-            DrawButtons(rightX + 4, panelTop + panelHeight - 3);
 
             DrawHotKeys(leftX + 2, panelTop + panelHeight - 2);
 
@@ -128,8 +129,13 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             {
                 _confirmDialog.HandleKey(keyInfo);
 
-                if (!_confirmDialog.Visible && _confirmDialog.Result)
-                    DeleteSelectedJob();
+                if (!_confirmDialog.Visible)
+                {
+                    if (_confirmDialog.Result)
+                        DeleteSelectedJob();
+
+                    _confirmDialog.Reset();
+                }
 
                 return;
             }
@@ -138,29 +144,27 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             {
                 _inputDialog.HandleKey(keyInfo);
                 
-                if (!_inputDialog.Visible && !string.IsNullOrWhiteSpace(_inputDialog.Result))
+                if (!_inputDialog.Visible)
                 {
-                    if (_editingDetailIndex == -1)
+                    if (!string.IsNullOrWhiteSpace(_inputDialog.Result))
                     {
-                        BackupJob job = new BackupJob
+                        if (_editingDetailIndex == -1)
                         {
-                            Name = _inputDialog.Result,
-                        };
+                            BackupJob job = new BackupJob
+                            {
+                                Name = _inputDialog.Result,
+                            };
 
-                        _jobs.Add(job);
-                    }
-                    else
-                    {
-                        ApplyDetailEdit(_inputDialog.Result);
-                        _editingDetailIndex = -1;
-                    }
+                            _jobs.Add(job);
+                        }
+                        else
+                        {
+                            ApplyDetailEdit(_inputDialog.Result);
+                        }
 
                         Save();
-                    RefreshTable();
-                    _inputDialog.Reset();
-                }
-                else if (!_inputDialog.Visible)
-                {
+                        RefreshTable();
+                    }
                     _editingDetailIndex = -1;
                     _inputDialog.Reset();
                 }
@@ -171,6 +175,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             if (_jobsTable.Active && (keyInfo.Key == ConsoleKey.A ||keyInfo.KeyChar == 'a'))
             {
                 _inputDialog.Reset();
+                _inputDialog.Title = "Zadej název konfigurace";
                 _inputDialog.Visible = true;
                 return;
             }
@@ -353,7 +358,8 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             {
                 ("Metoda:", job.Method.ToString()),
                 ("Časování:", job.Timing ?? ""),
-                ("Retence:", $"{job.Retention?.Count ?? 0} záloh, velikost balíčku {job.Retention?.Size ?? 0}"),
+                ("Retence Count:", (job.Retention?.Count ?? 0).ToString()),
+                ("Retence Size:", (job.Retention?.Size ?? 0).ToString()),
                 ("Zdroje:", string.Join(", ", job.Sources ?? new List<string>())),
                 ("Cíle:", string.Join(", ", job.Targets ?? new List<string>()))
             };
@@ -395,34 +401,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                 row += 2;
             }
         }
-
-        private void DrawButtons(int x, int y)
-        {
-            bool okSelected = _selectedIndex == 2;
-            bool cancelSelected = _selectedIndex == 3;
-
-            DrawButton(x, y, "OK", okSelected);
-            DrawButton(x + 20, y, "Storno", cancelSelected);
-        }
-
-        private void DrawButton(int x, int y, string text, bool selected)
-        {
-            Console.SetCursorPosition(x, y);
-
-            if (selected)
-            {
-                Console.BackgroundColor = ConsoleColor.Gray;
-                Console.ForegroundColor = ConsoleColor.Black;
-            }
-            else
-            {
-                Console.BackgroundColor = ConsoleColor.Blue;
-                Console.ForegroundColor = ConsoleColor.White;
-            }
-
-            Console.Write($"[ {text} ]");
-            Console.ResetColor();
-        }
+        
         private void DrawHotKeys(int x, int y)
         {
             Console.SetCursorPosition(x, y);
@@ -467,22 +446,32 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             switch (_editingDetailIndex)
             {
                 case 0:
+                    _inputDialog.Title = "Zadej metodu (Full/Differential/Incremental)";
                     _inputDialog.SetInitialValue(job.Method.ToString());
                     break;
 
                 case 1:
+                    _inputDialog.Title = "Zadej časování (CRON)";
                     _inputDialog.SetInitialValue(job.Timing ?? "");
                     break;
 
                 case 2:
+                    _inputDialog.Title = "Zadej retention count:";
                     _inputDialog.SetInitialValue(job.Retention?.Count.ToString() ?? "0");
                     break;
 
                 case 3:
-                    _inputDialog.SetInitialValue(string.Join(", ", job.Sources ?? new List<string>()));
+                    _inputDialog.Title = "Zadej retention size:";
+                    _inputDialog.SetInitialValue(job.Retention?.Size.ToString() ?? "0");
                     break;
 
                 case 4:
+                    _inputDialog.Title = "Zadej zdroje oddělené čárkou";
+                    _inputDialog.SetInitialValue(string.Join(", ", job.Sources ?? new List<string>()));
+                    break;
+
+                case 5:
+                    _inputDialog.Title = "Zadej cíle oddělené čárkou";
                     _inputDialog.SetInitialValue(string.Join(", ", job.Targets ?? new List<string>()));
                     break;
             }
@@ -520,6 +509,14 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                     break;
 
                 case 3:
+                    if (int.TryParse(value, out int size))
+                    {
+                        job.Retention ??= new BackupRetention();
+                        job.Retention.Size = size;
+                    }
+                    break;
+
+                case 4:
                     job.Sources = value
                         .Split(',')
                         .Select(s => s.Trim())
@@ -527,7 +524,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                         .ToList();
                     break;
 
-                case 4:
+                case 5:
                     job.Targets = value
                         .Split(',')
                         .Select(s => s.Trim())

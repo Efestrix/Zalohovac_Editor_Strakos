@@ -11,6 +11,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Dialogs
 {
     public class InputDialog
     {
+        public string Title { get; set; } = "";
         public bool Visible { get; set; }
         public string Result { get; private set; } = "";
 
@@ -28,9 +29,8 @@ namespace Zalohovac_Editor_Strakos.Presentation.Dialogs
             DrawBox(left, top, w, h);
 
             Console.SetCursorPosition(left + 2, top + 1);
-            Console.Write("Zadej název konfigurace:");
+            Console.Write(Title);
 
-            // INPUT
             Console.SetCursorPosition(left + 2, top + 3);
 
             if (_selected == 0)
@@ -48,37 +48,41 @@ namespace Zalohovac_Editor_Strakos.Presentation.Dialogs
 
         public void HandleKey(ConsoleKeyInfo key)
         {
+            if (key.Key == ConsoleKey.Tab)
+            {
+                _selected = (_selected + 1) % 3;
+                return;
+            }
+
+            if (key.Key == ConsoleKey.Escape)
+            {
+                Result = "";
+                Visible = false;
+                return;
+            }
+
             if (_selected == 0)
             {
                 if (key.Key == ConsoleKey.Backspace && _text.Length > 0)
                     _text = _text.Substring(0, _text.Length - 1);
 
-                else if (key.Key == ConsoleKey.Enter)
-                    _selected = 1;
-
                 else if (!char.IsControl(key.KeyChar))
                     _text += key.KeyChar;
-            }
-            else
-            {
-                if (key.Key == ConsoleKey.LeftArrow)
-                    _selected--;
-
-                else if (key.Key == ConsoleKey.RightArrow)
-                    _selected++;
-
-                if (_selected < 0) _selected = 2;
-                if (_selected > 2) _selected = 0;
 
                 else if (key.Key == ConsoleKey.Enter)
+                    _selected = 1;
+            }
+            else if (_selected == 1)
+            {
+                if (key.Key == ConsoleKey.Enter)
                 {
-                    if (_selected == 1)
-                        Result = string.IsNullOrWhiteSpace(_text) ? "" : _text;
-
+                    Result = string.IsNullOrWhiteSpace(_text) ? "" : _text;
                     Visible = false;
                 }
-
-                else if (key.Key == ConsoleKey.Escape)
+            }
+            else if (_selected == 2)
+            {
+                if (key.Key == ConsoleKey.Enter)
                 {
                     Result = "";
                     Visible = false;
@@ -115,6 +119,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Dialogs
             _text = "";
             Result = "";
             _selected = 0;
+            Visible = false;
         }
         public void SetInitialValue(string value)
         {

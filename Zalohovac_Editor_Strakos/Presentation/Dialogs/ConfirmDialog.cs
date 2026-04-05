@@ -37,21 +37,22 @@ namespace Zalohovac_Editor_Strakos.Presentation.Dialogs
 
         public void HandleKey(ConsoleKeyInfo key)
         {
-            if (key.Key == ConsoleKey.LeftArrow)
-                _selected = 0;
-
-            else if (key.Key == ConsoleKey.RightArrow)
-                _selected = 1;
-
-            else if (key.Key == ConsoleKey.Enter)
+            if (key.Key == ConsoleKey.Tab)
             {
-                Result = _selected == 0;
-                Visible = false;
+                _selected = (_selected + 1) % 2;
+                return;
             }
 
-            else if (key.Key == ConsoleKey.Escape)
+            if (key.Key == ConsoleKey.Escape)
             {
                 Result = false;
+                Visible = false;
+                return;
+            }
+
+            if (key.Key == ConsoleKey.Enter)
+            {
+                Result = _selected == 0;
                 Visible = false;
             }
         }

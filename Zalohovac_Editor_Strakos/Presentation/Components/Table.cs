@@ -32,7 +32,6 @@ namespace Zalohovac_Editor_Strakos.Presentation.Components
                 return Items[_selectedIndex];
             }
         }
-
         public int SelectedIndex => _selectedIndex;
 
         public List<T> Items { get; set; }
