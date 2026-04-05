@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Zalohovac_Editor_Strakos.Entities;
 using Zalohovac_Editor_Strakos.Presentation.Components;
+using Zalohovac_Editor_Strakos.Data;
 
 namespace Zalohovac_Editor_Strakos.Presentation.Windows
 {
@@ -29,11 +30,13 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
 
         private MainMenuWindow _mainMenu;
 
+        private ConfigRepository _repository;
         public BackupJobWindow(Application application, BackupJob job, MainMenuWindow mainMenu) 
             : base("Přehled záloh", application, mainMenu)
         {
             _mainMenu = mainMenu;
             _backupJob = job;
+            _repository = new ConfigRepository();
 
             InitComponents();
 
@@ -82,7 +85,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
         {
             _methodTextBox.Value = _backupJob.Method.ToString();
             _timingTextBox.Value = _backupJob.Timing ?? "";
-            _retentionTextBox.Value = "";
+            _retentionTextBox.Value = (_backupJob.Retention?.Count ?? 0).ToString();
             _sourceTextBox.Value = string.Join(", ", _backupJob.Sources ?? new List<string>());
             _targetsTextBox.Value = string.Join(", ", _backupJob.Targets ?? new List<string>());
         }
@@ -125,7 +128,16 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                 Size = 0
             };
 
-            _mainMenu.Save();
+            List<BackupJob> jobs = _repository.Load();
+
+            int existingIndex = jobs.FindIndex(j => j.Name == _backupJob.Name);
+
+            if (existingIndex >= 0)
+                jobs[existingIndex] = _backupJob;
+            else
+                jobs.Add(_backupJob);
+
+            _repository.Save(jobs);
             Submit();
         }
         public bool IsValidCron(string cron)

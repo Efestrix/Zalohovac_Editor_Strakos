@@ -20,6 +20,8 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
         private int _leftOffset = 0;
         private int _rightOffset = 0;
 
+        private bool _layoutDrawn = false;
+
         private int _focus = 0; // 0 = left, 1 = right, 2 = OK, 3 = Cancel
 
         private Button _okButton;
@@ -75,10 +77,14 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             int rightX = dividerX;
             int rightWidth = width - rightX - 1;
 
-            DrawBackground(width, height);
-            DrawHeader(width);
-            DrawBox(leftX, panelTop, leftWidth, panelHeight);
-            DrawBox(rightX, panelTop, rightWidth, panelHeight);
+            if (!_layoutDrawn)
+            {
+                DrawBackground(width, height);
+                DrawHeader(width);
+                DrawBox(leftX, panelTop, leftWidth, panelHeight);
+                DrawBox(rightX, panelTop, rightWidth, panelHeight);
+                _layoutDrawn = true;
+            }
 
             Console.SetCursorPosition(leftX + 2, panelTop + 1);
             Console.ForegroundColor = ConsoleColor.White;
@@ -264,7 +270,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
 
                 string item = _items[itemIndex] == ".." ? ".." : Path.GetFileName(_items[i]);
                 if (string.IsNullOrWhiteSpace(item))
-                    item = _items[i];
+                    item = _items[itemIndex];
 
                 item = TruncateMiddle(item, width);
 

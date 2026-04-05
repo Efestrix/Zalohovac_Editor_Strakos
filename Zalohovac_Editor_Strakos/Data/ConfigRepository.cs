@@ -11,26 +11,31 @@ namespace Zalohovac_Editor_Strakos.Data
 {
     public class ConfigRepository
     {
-        /*
-        private List<BackupJob> LoadFromJson()
+        private readonly string _filePath;
+
+        public ConfigRepository(string filePath = "config.json")
         {
-            if (!File.Exists("config.json"))
+            _filePath = filePath;
+        }
+
+        public List<BackupJob> Load()
+        {
+            if (!File.Exists(_filePath))
                 return new List<BackupJob>();
 
-            string json = File.ReadAllText("config.json");
+            string json = File.ReadAllText(_filePath);
 
             return JsonSerializer.Deserialize<List<BackupJob>>(json)
                 ?? new List<BackupJob>();
         }
-        public void Save()
+        public void Save(List<BackupJob> jobs)
         {
-            string json = JsonSerializer.Serialize(_jobs, new JsonSerializerOptions
+            string json = JsonSerializer.Serialize(jobs, new JsonSerializerOptions
             {
                 WriteIndented = true
             });
 
-            File.WriteAllText("config.json", json);
+            File.WriteAllText(_filePath, json);
         }
-        */
     }
 }

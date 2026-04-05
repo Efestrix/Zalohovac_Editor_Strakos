@@ -4,13 +4,40 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Zalohovac_Editor_Strakos.Entities;
+using Zalohovac_Editor_Strakos.Presentation.Components;
+using Zalohovac_Editor_Strakos.Presentation.ViewModels;
 using static System.Reflection.Metadata.BlobBuilder;
 
 namespace Zalohovac_Editor_Strakos.Presentation.Renderers
 {
     public class MainMenuRenderer
     {
-        /*
+        public void Render(
+            List<BackupJob> jobs,
+            Table<JobListItem> jobsTable,
+            Table<JobDetailItem> detailTable)
+        {
+            int width = Console.WindowWidth;
+            int height = Console.WindowHeight;
+
+            int headerHeight = 2;
+            int leftX = 2;
+            int panelTop = headerHeight + 1;
+            int panelHeight = height - headerHeight - 3;
+
+            int dividerX = width / 2;
+            int leftPanelWidth = dividerX - leftX;
+            int rightX = dividerX;
+            int rightPanelWidth = width - rightX - 1;
+
+            DrawBackground(width, height);
+            DrawHeader(width);
+            DrawPanels(leftX, panelTop, leftPanelWidth, rightX, rightPanelWidth, panelHeight);
+
+            DrawJobs(jobs, jobsTable, leftX + 2, panelTop + 2, leftPanelWidth - 4, panelHeight - 6);
+            DrawDetails(jobs, jobsTable, detailTable, rightX + 2, panelTop + 2, rightPanelWidth - 4, panelHeight - 6);
+        }
+
         private void DrawBackground(int width, int height)
         {
             Console.BackgroundColor = ConsoleColor.Blue;
@@ -65,7 +92,10 @@ namespace Zalohovac_Editor_Strakos.Presentation.Renderers
             Console.ResetColor();
         }
 
-        private void DrawJobs(int x, int y, int width, int height)
+        private void DrawJobs(
+            List<BackupJob> jobs,
+            Table<JobListItem> jobsTable,
+            int x, int y, int width, int height)
         {
             int maxVisible = Math.Max(1, height / 2);
 
@@ -73,7 +103,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Renderers
             {
                 Console.SetCursorPosition(x, y + i * 2);
 
-                if (i >= _jobs.Count)
+                if (i >= jobs.Count)
                 {
                     Console.BackgroundColor = ConsoleColor.Blue;
                     Console.ForegroundColor = ConsoleColor.White;
@@ -82,7 +112,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Renderers
                     continue;
                 }
 
-                bool selected = _jobsTable.Active && i == _jobsTable.SelectedIndex;
+                bool selected = jobsTable.Active && i == jobsTable.SelectedIndex;
 
                 if (selected)
                 {
@@ -95,7 +125,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Renderers
                     Console.ForegroundColor = ConsoleColor.White;
                 }
 
-                string text = _jobs[i].Name ?? $"Konfigurace {i + 1}";
+                string text = jobs[i].Name ?? $"Konfigurace {i + 1}";
                 if (text.Length > width)
                     text = text.Substring(0, width - 3) + "...";
 
@@ -104,22 +134,27 @@ namespace Zalohovac_Editor_Strakos.Presentation.Renderers
             }
         }
 
-        private void DrawDetails(int x, int y, int width, int height)
+        private void DrawDetails(
+            List<BackupJob> jobs,
+            Table<JobListItem> jobsTable,
+            Table<JobDetailItem> detailTable,
+            int x, int y, int width, int height)
         {
-            if (_jobs.Count == 0 || _jobsTable.SelectedItem == null)
+            if (jobs.Count == 0 || jobsTable.SelectedItem == null)
                 return;
 
-            int index = _jobsTable.Items.IndexOf(_jobsTable.SelectedItem);
-            if (index < 0 || index >= _jobs.Count)
+            int index = jobsTable.Items.IndexOf(jobsTable.SelectedItem);
+            if (index < 0 || index >= jobs.Count)
                 return;
 
-            BackupJob job = _jobs[index];
+            BackupJob job = jobs[index];
 
             List<(string Label, string Value)> rows = new()
             {
                 ("Metoda:", job.Method.ToString()),
                 ("Časování:", job.Timing ?? ""),
-                ("Retence:", $"{job.Retention?.Count ?? 0} záloh, velikost balíčku {job.Retention?.Size ?? 0}"),
+                ("Retence Count:", (job.Retention?.Count ?? 0).ToString()),
+                ("Retence Size:", (job.Retention?.Size ?? 0).ToString()),
                 ("Zdroje:", string.Join(", ", job.Sources ?? new List<string>())),
                 ("Cíle:", string.Join(", ", job.Targets ?? new List<string>()))
             };
@@ -128,7 +163,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Renderers
 
             for (int i = 0; i < rows.Count; i++)
             {
-                bool selected = _detailTable.Active && i == _detailTable.SelectedIndex;
+                bool selected = detailTable.Active && i == detailTable.SelectedIndex;
 
                 Console.SetCursorPosition(x, y + row);
                 Console.BackgroundColor = ConsoleColor.Blue;
@@ -161,13 +196,5 @@ namespace Zalohovac_Editor_Strakos.Presentation.Renderers
                 row += 2;
             }
         }
-        private void DrawHotKeys(int x, int y)
-        {
-            Console.SetCursorPosition(x, y);
-            Console.BackgroundColor = ConsoleColor.Blue;
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.ResetColor();
-        }
-        */
     }
 }

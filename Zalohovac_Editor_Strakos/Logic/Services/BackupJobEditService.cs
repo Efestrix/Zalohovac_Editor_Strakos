@@ -10,19 +10,9 @@ namespace Zalohovac_Editor_Strakos.Logic.Services
 {
     public class BackupJobEditService
     {
-        /*
-        private void ApplyDetailEdit(string value)
+        public void ApplyDetailEdit(BackupJob job, int detailIndex, string value)
         {
-            if (_jobsTable.SelectedItem == null)
-                return;
-
-            int jobIndex = _jobsTable.Items.IndexOf(_jobsTable.SelectedItem);
-            if (jobIndex < 0 || jobIndex >= _jobs.Count)
-                return;
-
-            BackupJob job = _jobs[jobIndex];
-
-            switch (_editingDetailIndex)
+            switch (detailIndex)
             {
                 case 0:
                     if (Enum.TryParse<BackupMethod>(value, true, out BackupMethod method))
@@ -42,6 +32,14 @@ namespace Zalohovac_Editor_Strakos.Logic.Services
                     break;
 
                 case 3:
+                    if (int.TryParse(value, out int size))
+                    {
+                        job.Retention ??= new BackupRetention();
+                        job.Retention.Size = size;
+                    }
+                    break;
+
+                case 4:
                     job.Sources = value
                         .Split(',')
                         .Select(s => s.Trim())
@@ -49,7 +47,7 @@ namespace Zalohovac_Editor_Strakos.Logic.Services
                         .ToList();
                     break;
 
-                case 4:
+                case 5:
                     job.Targets = value
                         .Split(',')
                         .Select(s => s.Trim())
@@ -58,6 +56,5 @@ namespace Zalohovac_Editor_Strakos.Logic.Services
                     break;
             }
         }
-        */
     }
 }

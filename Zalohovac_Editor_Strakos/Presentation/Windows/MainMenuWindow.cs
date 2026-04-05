@@ -1,8 +1,11 @@
 ﻿using System.Linq.Expressions;
 using System.Text.Json;
+using Zalohovac_Editor_Strakos.Data;
 using Zalohovac_Editor_Strakos.Entities;
+using Zalohovac_Editor_Strakos.Logic.Services;
 using Zalohovac_Editor_Strakos.Presentation.Components;
 using Zalohovac_Editor_Strakos.Presentation.Dialogs;
+using Zalohovac_Editor_Strakos.Presentation.Renderers;
 using Zalohovac_Editor_Strakos.Presentation.ViewModels;
 
 namespace Zalohovac_Editor_Strakos.Presentation.Windows
@@ -16,12 +19,22 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
 
         private int _editingDetailIndex = -1;
 
+        private bool _layoutDrawn = false;
+
         private ConfirmDialog _confirmDialog = new ConfirmDialog();
         private InputDialog _inputDialog = new InputDialog();
+
+        private readonly ConfigRepository _repository;
+        private readonly BackupJobEditService _editService;
+        private readonly MainMenuRenderer _renderer;
         public MainMenuWindow(Application application, IWindow? returnWindow = null)
             : base("Main Menu", application)
         {
-            _jobs = LoadFromJson();
+            _repository = new ConfigRepository();
+            _editService = new BackupJobEditService();
+            _renderer = new MainMenuRenderer();
+
+            _jobs = _repository.Load();
 
             _jobsTable = new Table<JobListItem>();
             _detailTable = new Table<JobDetailItem>();
@@ -84,37 +97,13 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
         public override void Show()
         {
             base.Show();
-            _jobs = LoadFromJson();
+            _jobs = _repository.Load();
             RefreshTable();
         }
         public override void Render()
         {
             UpdateDetailTable();
-
-            int width = Console.WindowWidth;
-            int height = Console.WindowHeight;
-
-            int headerHeight = 2;
-            int margin = 1;
-
-            int leftX = 2;
-            int panelTop = headerHeight + 1;
-            int panelHeight = height - headerHeight - 3;
-
-            int dividerX = width / 2;
-            int leftPanelWidth = dividerX - leftX;
-            int rightX = dividerX;
-            int rightPanelWidth = width - rightX - 1;
-
-            Console.SetCursorPosition(0, 0);
-
-            DrawBackground(width, height);
-            DrawHeader(width);
-            DrawPanels(leftX, panelTop, leftPanelWidth, rightX, rightPanelWidth, panelHeight);
-            DrawJobs(leftX + 2, panelTop + 2, leftPanelWidth - 4, panelHeight - 6);
-            DrawDetails(rightX + 2, panelTop + 2, rightPanelWidth - 4, panelHeight - 6);
-
-            DrawHotKeys(leftX + 2, panelTop + panelHeight - 2);
+            _renderer.Render(_jobs, _jobsTable, _detailTable);
 
             if (_confirmDialog.Visible)
                 _confirmDialog.Render();
@@ -161,7 +150,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                             ApplyDetailEdit(_inputDialog.Result);
                         }
 
-                        Save();
+                        _repository.Save(_jobs);
                         RefreshTable();
                     }
                     _editingDetailIndex = -1;
@@ -226,188 +215,11 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             _jobsTable.Active = _selectedIndex == 0;
             _detailTable.Active = _selectedIndex == 1;
         }
-        private List<BackupJob> LoadFromJson()
-        {
-            if (!File.Exists("config.json"))
-                return new List<BackupJob>();
-
-            string json = File.ReadAllText("config.json");
-
-            return JsonSerializer.Deserialize<List<BackupJob>>(json)
-                ?? new List<BackupJob>();
-        }
-        public void Save()
-        {
-            string json = JsonSerializer.Serialize(_jobs, new JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
-
-            File.WriteAllText("config.json", json);
-        }
         private void WindowClosed()
         {
             _application.Stop();
         }
-        private void DrawBackground(int width, int height)
-        {
-            Console.BackgroundColor = ConsoleColor.Blue;
-            Console.ForegroundColor = ConsoleColor.White;
-
-            for (int y = 0; y < height; y++)
-            {
-                Console.SetCursorPosition(0, y);
-                Console.Write(new string(' ', width));
-            }
-
-            Console.ResetColor();
-        }
-
-        private void DrawHeader(int width)
-        {
-            Console.BackgroundColor = ConsoleColor.Gray;
-            Console.ForegroundColor = ConsoleColor.Black;
-
-            Console.SetCursorPosition(0, 0);
-            Console.Write((" Přehled záloh ").PadRight(width));
-
-            Console.SetCursorPosition(0, 1);
-            Console.Write(new string(' ', width));
-
-            Console.ResetColor();
-        }
-
-        private void DrawPanels(int leftX, int top, int leftWidth, int rightX, int rightWidth, int height)
-        {
-            DrawBox(leftX, top, leftWidth, height);
-            DrawBox(rightX, top, rightWidth, height);
-        }
-
-        private void DrawBox(int x, int y, int width, int height)
-        {
-            Console.ForegroundColor = ConsoleColor.Gray;
-            Console.BackgroundColor = ConsoleColor.Blue;
-
-            Console.SetCursorPosition(x, y);
-            Console.Write("┌" + new string('─', width - 2) + "┐");
-
-            for (int i = 1; i < height - 1; i++)
-            {
-                Console.SetCursorPosition(x, y + i);
-                Console.Write("│" + new string(' ', width - 2) + "│");
-            }
-
-            Console.SetCursorPosition(x, y + height - 1);
-            Console.Write("└" + new string('─', width - 2) + "┘");
-
-            Console.ResetColor();
-        }
-
-        private void DrawJobs(int x, int y, int width, int height)
-        {
-            int maxVisible = Math.Max(1, height / 2);
-
-            for (int i = 0; i < maxVisible; i++)
-            {
-                Console.SetCursorPosition(x, y + i * 2);
-
-                if (i >= _jobs.Count)
-                {
-                    Console.BackgroundColor = ConsoleColor.Blue;
-                    Console.ForegroundColor = ConsoleColor.White;
-                    Console.Write(new string(' ', width));
-                    Console.ResetColor();
-                    continue;
-                }
-
-                bool selected = _jobsTable.Active && i == _jobsTable.SelectedIndex;
-
-                if (selected)
-                {
-                    Console.BackgroundColor = ConsoleColor.Gray;
-                    Console.ForegroundColor = ConsoleColor.Black;
-                }
-                else
-                {
-                    Console.BackgroundColor = ConsoleColor.Blue;
-                    Console.ForegroundColor = ConsoleColor.White;
-                }
-
-                string text = _jobs[i].Name ?? $"Konfigurace {i + 1}";
-                if (text.Length > width)
-                    text = text.Substring(0, width - 3) + "...";
-
-                Console.Write((" " + text).PadRight(width));
-                Console.ResetColor();
-            }
-        }
-
-        private void DrawDetails(int x, int y, int width, int height)
-        {
-            if (_jobs.Count == 0 || _jobsTable.SelectedItem == null)
-                return;
-
-            int index = _jobsTable.Items.IndexOf(_jobsTable.SelectedItem);
-            if (index < 0 || index >= _jobs.Count)
-                return;
-
-            BackupJob job = _jobs[index];
-
-            List<(string Label, string Value)> rows = new()
-            {
-                ("Metoda:", job.Method.ToString()),
-                ("Časování:", job.Timing ?? ""),
-                ("Retence Count:", (job.Retention?.Count ?? 0).ToString()),
-                ("Retence Size:", (job.Retention?.Size ?? 0).ToString()),
-                ("Zdroje:", string.Join(", ", job.Sources ?? new List<string>())),
-                ("Cíle:", string.Join(", ", job.Targets ?? new List<string>()))
-            };
-
-            int row = 0;
-
-            for (int i = 0; i < rows.Count; i++)
-            {
-                bool selected = _detailTable.Active && i == _detailTable.SelectedIndex;
-
-                Console.SetCursorPosition(x, y + row);
-                Console.BackgroundColor = ConsoleColor.Blue;
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.Write(rows[i].Label.PadRight(width));
-                Console.ResetColor();
-
-                row++;
-
-                Console.SetCursorPosition(x + 2, y + row);
-
-                if (selected)
-                {
-                    Console.BackgroundColor = ConsoleColor.Gray;
-                    Console.ForegroundColor = ConsoleColor.Black;
-                }
-                else
-                {
-                    Console.BackgroundColor = ConsoleColor.Blue;
-                    Console.ForegroundColor = ConsoleColor.White;
-                }
-
-                string value = rows[i].Value ?? "";
-                if (value.Length > width - 2)
-                    value = value.Substring(0, width - 5) + "...";
-
-                Console.Write(value.PadRight(width - 2));
-                Console.ResetColor();
-
-                row += 2;
-            }
-        }
         
-        private void DrawHotKeys(int x, int y)
-        {
-            Console.SetCursorPosition(x, y);
-            Console.BackgroundColor = ConsoleColor.Blue;
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.ResetColor();
-        }
         private void DeleteSelectedJob()
         {
             JobListItem? selected = _jobsTable.SelectedItem;
@@ -419,7 +231,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                 return;
 
             _jobs.RemoveAt(index);
-            Save();
+            _repository.Save(_jobs);
             RefreshTable();
 
             if (_jobs.Count == 0)
@@ -473,7 +285,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                     windowSource.Submitted += () =>
                     {
                         job.Sources = new List<string>(windowSource.Result);
-                        Save();
+                        _repository.Save(_jobs);
                         RefreshTable();
                     };
                     windowSource.Show();
@@ -484,7 +296,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                     windowTarget.Submitted += () =>
                     {
                         job.Targets = new List<string>(windowTarget.Result);
-                        Save();
+                        _repository.Save(_jobs);
                         RefreshTable();
                     };
                     windowTarget.Show();
