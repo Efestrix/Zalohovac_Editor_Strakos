@@ -1,8 +1,5 @@
-﻿using System.Linq.Expressions;
-using System.Text.Json;
-using Zalohovac_Editor_Strakos.Data;
+﻿using Zalohovac_Editor_Strakos.Data;
 using Zalohovac_Editor_Strakos.Entities;
-using Zalohovac_Editor_Strakos.Logic.Services;
 using Zalohovac_Editor_Strakos.Presentation.Components;
 using Zalohovac_Editor_Strakos.Presentation.Dialogs;
 using Zalohovac_Editor_Strakos.Presentation.Renderers;
@@ -19,19 +16,15 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
 
         private int _editingDetailIndex = -1;
 
-        private bool _layoutDrawn = false;
-
         private ConfirmDialog _confirmDialog = new ConfirmDialog();
         private InputDialog _inputDialog = new InputDialog();
 
         private readonly ConfigRepository _repository;
-        private readonly BackupJobEditService _editService;
         private readonly MainMenuRenderer _renderer;
         public MainMenuWindow(Application application, IWindow? returnWindow = null)
             : base("Main Menu", application)
         {
             _repository = new ConfigRepository();
-            _editService = new BackupJobEditService();
             _renderer = new MainMenuRenderer();
 
             _jobs = _repository.Load();
@@ -131,7 +124,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             if (_inputDialog.Visible)
             {
                 _inputDialog.HandleKey(keyInfo);
-                
+
                 if (!_inputDialog.Visible)
                 {
                     if (!string.IsNullOrWhiteSpace(_inputDialog.Result))
@@ -144,23 +137,35 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                             };
 
                             _jobs.Add(job);
+                            _repository.Save(_jobs);
+                            RefreshTable();
+                            _editingDetailIndex = -1;
+                            _inputDialog.Reset();
                         }
                         else
                         {
-                            ApplyDetailEdit(_inputDialog.Result);
-                        }
+                            bool success = ApplyDetailEdit(_inputDialog.Result);
 
-                        _repository.Save(_jobs);
-                        RefreshTable();
+                            if (success)
+                            {
+                                _repository.Save(_jobs);
+                                RefreshTable();
+                                _editingDetailIndex = -1;
+                                _inputDialog.Reset();
+                            }
+                        }
                     }
-                    _editingDetailIndex = -1;
-                    _inputDialog.Reset();
+                    else
+                    {
+                        _editingDetailIndex = -1;
+                        _inputDialog.Reset();
+                    }
                 }
 
                 return;
             }
 
-            if (_jobsTable.Active && (keyInfo.Key == ConsoleKey.A ||keyInfo.KeyChar == 'a'))
+            if (_jobsTable.Active && (keyInfo.Key == ConsoleKey.A || keyInfo.KeyChar == 'a'))
             {
                 _inputDialog.Reset();
                 _inputDialog.Title = "Zadej název konfigurace";
@@ -201,6 +206,15 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                 if (keyInfo.Key == ConsoleKey.Enter)
                 {
                     _editingDetailIndex = _detailTable.SelectedIndex;
+
+                    if (_editingDetailIndex == 0)
+                    {
+                        CycleMethod();
+                        _repository.Save(_jobs);
+                        RefreshTable();
+                        return;
+                    }
+
                     OpenDetailEditor();
                     return;
                 }
@@ -219,7 +233,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
         {
             _application.Stop();
         }
-        
+
         private void DeleteSelectedJob()
         {
             JobListItem? selected = _jobsTable.SelectedItem;
@@ -256,12 +270,6 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
 
             switch (_editingDetailIndex)
             {
-                case 0:
-                    _inputDialog.Title = "Zadej metodu (Full/Differential/Incremental)";
-                    _inputDialog.SetInitialValue(job.Method.ToString());
-                    _inputDialog.Visible = true;
-                    return;
-
                 case 1:
                     _inputDialog.Title = "Zadej časování (CRON)";
                     _inputDialog.SetInitialValue(job.Timing ?? "");
@@ -305,14 +313,14 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
 
             _inputDialog.Visible = true;
         }
-        private void ApplyDetailEdit(string value)
+        private bool ApplyDetailEdit(string value)
         {
             if (_jobsTable.SelectedItem == null)
-                return;
+                return false;
 
             int jobIndex = _jobsTable.Items.IndexOf(_jobsTable.SelectedItem);
             if (jobIndex < 0 || jobIndex >= _jobs.Count)
-                return;
+                return false;
 
             BackupJob job = _jobs[jobIndex];
 
@@ -321,11 +329,21 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                 case 0:
                     if (Enum.TryParse<BackupMethod>(value, true, out BackupMethod method))
                         job.Method = method;
-                    break;
+                    return true;
 
                 case 1:
-                    job.Timing = value;
-                    break;
+                    if (IsValidCron(value))
+                    {
+                        job.Timing = value;
+                        return true;
+                    }
+                    else
+                    {
+                        _inputDialog.Title = "Neplatný CRON! Formát: * * * * *";
+                        _inputDialog.SetInitialValue(job.Timing ?? "");
+                        _inputDialog.Visible = true;
+                        return false;
+                    }
 
                 case 2:
                     if (int.TryParse(value, out int count))
@@ -333,7 +351,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                         job.Retention ??= new BackupRetention();
                         job.Retention.Count = count;
                     }
-                    break;
+                    return true;
 
                 case 3:
                     if (int.TryParse(value, out int size))
@@ -341,7 +359,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                         job.Retention ??= new BackupRetention();
                         job.Retention.Size = size;
                     }
-                    break;
+                    return true;
 
                 case 4:
                     job.Sources = value
@@ -349,7 +367,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                         .Select(s => s.Trim())
                         .Where(s => !string.IsNullOrWhiteSpace(s))
                         .ToList();
-                    break;
+                    return true;
 
                 case 5:
                     job.Targets = value
@@ -357,8 +375,36 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                         .Select(s => s.Trim())
                         .Where(s => !string.IsNullOrWhiteSpace(s))
                         .ToList();
-                    break;
+                    return true;
             }
+            return false;
+        }
+        private bool IsValidCron(string cron)
+        {
+            return System.Text.RegularExpressions.Regex.IsMatch
+                (
+                    cron,
+                    @"^(\*|\d+)(\s+(\*|\d+)){4}$"
+                );
+        }
+        private void CycleMethod()
+        {
+            if (_jobsTable.SelectedItem == null)
+                return;
+
+            int jobIndex = _jobsTable.Items.IndexOf(_jobsTable.SelectedItem);
+
+            if (jobIndex < 0 || jobIndex >= _jobs.Count)
+                return;
+
+            BackupJob job = _jobs[jobIndex];
+
+            job.Method = job.Method switch
+            {
+                BackupMethod.Full => BackupMethod.Differential,
+                BackupMethod.Differential => BackupMethod.Incremental,
+                _ => BackupMethod.Full
+            };
         }
     }
 }

@@ -28,13 +28,10 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
 
         private Button _saveButton;
 
-        private MainMenuWindow _mainMenu;
-
         private ConfigRepository _repository;
         public BackupJobWindow(Application application, BackupJob job, MainMenuWindow mainMenu) 
             : base("Přehled záloh", application, mainMenu)
         {
-            _mainMenu = mainMenu;
             _backupJob = job;
             _repository = new ConfigRepository();
 
