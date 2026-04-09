@@ -108,7 +108,13 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             Console.SetCursorPosition(2, height - 1);
             Console.BackgroundColor = ConsoleColor.Blue;
             Console.ForegroundColor = ConsoleColor.White;
-            Console.Write("[Tab] přepnout panel/tlačítka  [Enter] otevřít  [Space] přidat  [Delete] odebrat  [Esc] zpět".PadRight(width));
+
+            string help = "[Tab] přepnout panel/tlačítka  [Enter] otevřít  [Space] přidat  [Delete] odebrat  [Esc] zpět";
+
+            if (help.Length > width - 3)
+                help = help.Substring(0, Math.Max(1, width - 6)) + "...";
+
+            Console.Write(help.PadRight(Math.Max(1, width - 3)));
             Console.ResetColor();
         }
 
@@ -268,7 +274,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                     Console.ForegroundColor = ConsoleColor.White;
                 }
 
-                string item = _items[itemIndex] == ".." ? ".." : Path.GetFileName(_items[i]);
+                string item = _items[itemIndex] == ".." ? ".." : Path.GetFileName(_items[itemIndex]);
                 if (string.IsNullOrWhiteSpace(item))
                     item = _items[itemIndex];
 
@@ -324,7 +330,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             for (int y = 0; y < height; y++)
             {
                 Console.SetCursorPosition(0, y);
-                Console.Write(new string(' ', width));
+                Console.Write(new string(' ', Math.Max(1, width - 1)));
             }
 
             Console.ResetColor();
@@ -336,10 +342,10 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             Console.ForegroundColor = ConsoleColor.Black;
 
             Console.SetCursorPosition(0, 0);
-            Console.Write((" Výběr složek ").PadRight(width));
+            Console.Write((" Výběr složek ").PadRight(Math.Max(1, width - 1)));
 
             Console.SetCursorPosition(0, 1);
-            Console.Write(new string(' ', width));
+            Console.Write(new string(' ', Math.Max(1, width - 1)));
 
             Console.ResetColor();
         }

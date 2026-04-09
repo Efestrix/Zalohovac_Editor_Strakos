@@ -25,6 +25,7 @@ namespace Zalohovac_Editor_Strakos
 
             Console.Title = "BackupClient";
             Console.CursorVisible = false;
+
             Console.Clear();
 
             while (_running)
