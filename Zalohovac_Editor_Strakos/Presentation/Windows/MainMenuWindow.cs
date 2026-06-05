@@ -1,4 +1,5 @@
-﻿using Zalohovac_Editor_Strakos.Data;
+﻿using Zalohovac_Editor_Strakos.Api;
+using Zalohovac_Editor_Strakos.Data;
 using Zalohovac_Editor_Strakos.Entities;
 using Zalohovac_Editor_Strakos.Presentation.Components;
 using Zalohovac_Editor_Strakos.Presentation.Dialogs;
@@ -19,15 +20,18 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
         private ConfirmDialog _confirmDialog = new ConfirmDialog();
         private InputDialog _inputDialog = new InputDialog();
 
-        private readonly ConfigRepository _repository;
+        private readonly ApiConfigRepository _repository;
         private readonly MainMenuRenderer _renderer;
         public MainMenuWindow(Application application, IWindow? returnWindow = null)
             : base("Main Menu", application)
         {
-            _repository = new ConfigRepository();
+            string apiUrl = "https://localhost:7273";
+            string token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiYWRtaW4iLCJleHAiOjE3ODA2OTg1OTUsImlzcyI6IlN0cmFrb3NBUEkiLCJhdWQiOiJTdHJha29zQVBJVXNlcnMifQ.hBT-31VXW_msGxPiDe9XgE18mIQrjlzadYJVASW0d70";
+
+            _repository = new ApiConfigRepository(apiUrl, token);
             _renderer = new MainMenuRenderer();
 
-            _jobs = _repository.Load();
+            _jobs = _repository.LoadAsync().GetAwaiter().GetResult();
 
             _jobsTable = new Table<JobListItem>();
             _detailTable = new Table<JobDetailItem>();
@@ -55,7 +59,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             _jobsTable.Items = _jobs
                 .Select((job, index) => new JobListItem
                 {
-                    Name = job.Name
+                    Name = $"{job.Method} ({job.Id})"
                 })
                 .ToList();
 
@@ -90,7 +94,7 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
         public override void Show()
         {
             base.Show();
-            _jobs = _repository.Load();
+            _jobs = _repository.LoadAsync().GetAwaiter().GetResult();
             RefreshTable();
         }
         public override void Render()
@@ -137,7 +141,8 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                             };
 
                             _jobs.Add(job);
-                            _repository.Save(_jobs);
+                            _repository.CreateAsync(job).GetAwaiter().GetResult();
+                            _jobs = _repository.LoadAsync().GetAwaiter().GetResult();
                             RefreshTable();
                             _editingDetailIndex = -1;
                             _inputDialog.Reset();
@@ -148,7 +153,11 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
 
                             if (success)
                             {
-                                _repository.Save(_jobs);
+                                BackupJob job = _jobs[_jobsTable.SelectedIndex];
+
+                                _repository.UpdateAsync(job).GetAwaiter().GetResult();
+
+                                _jobs = _repository.LoadAsync().GetAwaiter().GetResult();
                                 RefreshTable();
                                 _editingDetailIndex = -1;
                                 _inputDialog.Reset();
@@ -210,7 +219,11 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                     if (_editingDetailIndex == 0)
                     {
                         CycleMethod();
-                        _repository.Save(_jobs);
+
+                        BackupJob selectedJob = _jobs[_jobsTable.SelectedIndex];
+                        _repository.UpdateAsync(selectedJob).GetAwaiter().GetResult();
+
+                        _jobs = _repository.LoadAsync().GetAwaiter().GetResult();
                         RefreshTable();
                         return;
                     }
@@ -244,8 +257,8 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
             if (index < 0 || index >= _jobs.Count)
                 return;
 
-            _jobs.RemoveAt(index);
-            _repository.Save(_jobs);
+            _repository.DeleteAsync(_jobs[index].Id).GetAwaiter().GetResult();
+            _jobs = _repository.LoadAsync().GetAwaiter().GetResult();
             RefreshTable();
 
             if (_jobs.Count == 0)
@@ -293,7 +306,8 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                     windowSource.Submitted += () =>
                     {
                         job.Sources = new List<string>(windowSource.Result);
-                        _repository.Save(_jobs);
+                        _repository.UpdateAsync(job).GetAwaiter().GetResult();
+                        _jobs = _repository.LoadAsync().GetAwaiter().GetResult();
                         RefreshTable();
                     };
                     windowSource.Show();
@@ -304,7 +318,8 @@ namespace Zalohovac_Editor_Strakos.Presentation.Windows
                     windowTarget.Submitted += () =>
                     {
                         job.Targets = new List<string>(windowTarget.Result);
-                        _repository.Save(_jobs);
+                        _repository.UpdateAsync(job).GetAwaiter().GetResult();
+                        _jobs = _repository.LoadAsync().GetAwaiter().GetResult();
                         RefreshTable();
                     };
                     windowTarget.Show();

@@ -9,7 +9,8 @@ namespace Zalohovac_Editor_Strakos.Entities
 {
     public class BackupJob
     {
-        public string Name { get; set; } = "Nová konfigurace";
+        public int Id { get; set; } = 0;
+        public string Name { get; set; }
         [JsonPropertyName("sources")]
         public List<string> Sources { get; set; } = new List<string>();
         [JsonPropertyName("targets")]
